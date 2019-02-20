@@ -125,11 +125,39 @@ mins = data.frame(min_1, min_2, min_3, min_4, min_5)
 #binding onto original data
 swallowtail_df = bind_cols(swallowtail_df, mins)
 
-#Calculating averages per occurence and normalizing for weights
+#Calculating averages per occurence and normalizing to generate weights
 #i.e. high average values = points that are on their own, low average values = points that are clumped
 swallowtail_df %>%
   mutate(avg_min = (min_1 + min_2 + min_3 + min_4 + min_5)/5,
   norm_avg_min = (avg_min - mean(avg_min))/sd(avg_min)) %>%
   select(-c(min_1:min_5))
+
+#Simple Regression - generating summary dataframe
+swallowtail_df_summary = swallowtail_df %>%
+  mutate(year = year(date)) %>%
+  group_by(year) %>%
+  summarize(n = n(), 
+            max_lat = max(latitude))
+
+#plotting
+ggplot(swallowtail_df_summary, aes(x = year, y = max_lat, size = n)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(data = swallowtail_df_summary %>%
+                filter(year < 2000), method = "lm", color = "black", show.legend = FALSE) +
+  geom_smooth(data = swallowtail_df_summary %>%
+                filter(year > 2000), method = "lm", color = "black", show.legend = FALSE) +
+  theme_bw() +
+  labs(x = "Year", y = "Maximum Latitude (º)") +
+  scale_color_discrete() +
+  scale_size_continuous(breaks = c(5, 25, 100, 500, 1000))
   
+#trying to mimic the map in Figure 1 from the manuscript
+swallowtail_df_map = swallowtail_df %>%
+  mutate(year = year(date), 
+         time_frame = as.factor(ifelse(year >= 2000, 2, 1)))
+
+qmap("west virgnia",zoom = 5, maptype = "toner-background") +
+  geom_point(data = swallowtail_df_map, aes(x = longitude, y = latitude, color = time_frame), alpha = 0.5) +
+  scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
+  labs(x = "Longitude (º) ", y = "Latitude (º)")
 
