@@ -127,7 +127,7 @@ swallowtail_df = bind_cols(swallowtail_df, mins)
 
 #Calculating averages per occurence and normalizing to generate weights
 #i.e. high average values = points that are on their own, low average values = points that are clumped
-swallowtail_df %>%
+swallowtail_df = swallowtail_df %>%
   mutate(avg_min = (min_1 + min_2 + min_3 + min_4 + min_5)/5,
   norm_avg_min = (avg_min - mean(avg_min))/sd(avg_min)) %>%
   select(-c(min_1:min_5))
@@ -161,3 +161,40 @@ qmap("west virgnia",zoom = 5, maptype = "toner-background") +
   scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
   labs(x = "Longitude (º) ", y = "Latitude (º)")
 
+#Let's finish this script by writing the host-plant and butterfly data so we can feed them into another script
+#Butterfly output
+write.csv(swallowtail_df, "./data/swallowtail_data.csv")
+
+#need to do weighting for hostplant
+
+#New dataframe to work with
+sp_hostplant = host_plant_df
+
+#Changing the swallowtail dataframe to an sp object
+coordinates(sp_hostplant) = ~longitude + latitude
+
+#Constructing a pairwise distance matrix
+d <- distm(sp_hostplant)
+
+#Closest 5 distances
+min_1 = apply(d, 1, function(x) sort(x, TRUE)[2])
+min_2 = apply(d, 1, function(x) sort(x, TRUE)[3])
+min_3 = apply(d, 1, function(x) sort(x, TRUE)[4])
+min_4 = apply(d, 1, function(x) sort(x, TRUE)[5])
+min_5 = apply(d, 1, function(x) sort(x, TRUE)[6])
+
+#Binding into a dataframe
+mins = data.frame(min_1, min_2, min_3, min_4, min_5)
+
+#binding onto original data
+host_plant_df = bind_cols(host_plant_df, mins)
+
+#Calculating averages per occurence and normalizing to generate weights
+#i.e. high average values = points that are on their own, low average values = points that are clumped
+host_plant_df = host_plant_df %>%
+  mutate(avg_min = (min_1 + min_2 + min_3 + min_4 + min_5)/5,
+         norm_avg_min = (avg_min - mean(avg_min))/sd(avg_min)) %>%
+  select(-c(min_1:min_5))
+
+#writing data
+write_csv(host_plant_df, "./data/host_plant_data.csv")
