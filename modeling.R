@@ -218,11 +218,18 @@ ggarrange(g1, g2, common.legend = TRUE, labels = c("1960-2000", "2000-2018"))
 maxent = dismo::maxent(x = bioclim.data, p = as.matrix(pre_2000))
 predict_presence_pre = dismo::predict(object = maxent, x = bioclim.data, ext = geographic.extent)
 
+maxent_post = dismo::maxent(x = bioclim.data, p = as.matrix(post_2000))
+predict_presence_post = dismo::predict(object = maxent_post, x = bioclim.data, ext = geographic.extent)
+
 test_spdf_pre <- as(predict_presence_pre, "SpatialPixelsDataFrame")
 test_df_pre <- as.data.frame(test_spdf_pre)
 colnames(test_df_pre) <- c("value", "x", "y")
 
-ggplot() +  
+test_spdf_post <- as(predict_presence_post, "SpatialPixelsDataFrame")
+test_df_post <- as.data.frame(test_spdf_post)
+colnames(test_df_post) <- c("value", "x", "y")
+
+g1 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
@@ -235,3 +242,28 @@ ggplot() +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_map()
+
+g2 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=test_df_post, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  scale_fill_viridis() +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map()
+
+ggarrange(g1, g2, common.legend = TRUE, labels = c("1960-2000", "2000-2018"))
+
+#Playing with maxent parameters
+plot(maxent_post)
+response(maxent_post)
+
+#Model testing - right now it's using all the data. Way overfit - we'll need to take the Machine Learning approach of testing and training. The evaluate function also incorporates background data
+
+#background data
+bg = randomPoints(bioclim.data, 1000)
