@@ -10,6 +10,7 @@ library(mapr)
 library(ggmap)
 library(scrubr)
 library(lubridate)
+library(readxl)
 
 #register google api for mapping stuff
 register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
@@ -43,12 +44,45 @@ swallowtail_df %>%
   summarize(n()) %>%
   print(n = 59)
 
+#Let's pull in Kent's data from ebutterfly, maine atlas and maritime atlas
+ebutterfly = read_xlsx(path = "./data/e_butterfly.xlsx")
+maine = read_xlsx(path = "./data/maine_butterfly_atlas.xlsx")
+maritime = read_xlsx(path = "./data/maritime_atlas.xlsx")
+
+#cleaning and merging
+ebutterfly = ebutterfly %>%
+  select(OccuranceID, 'Date Observed', Latitude, Longitude) %>%
+  select(Latitude, Longitude, Date = 'Date Observed') %>%
+  mutate(date = as.Date(Date)) %>%
+  select(-Date)
+
+maine = maine %>%
+  select(Latitude, Longitude, Year, Month, Day) %>%
+  filter(!is.na(Latitude) & !is.na(Longitude)) %>%
+  mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
+  select(-c(Year, Month, Day))
+
+maritime = maritime %>%
+  select(Latitude, Longitude, Year, Month, Day) %>%
+  filter(Day != "XX") %>%
+  mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
+  select(-c(Year, Month, Day))
+
+swallowtail_df = swallowtail_df %>%
+  select(Latitude = latitude, Longitude = longitude, date)
+
+#binding together
+swallowtail_master = bind_rows("inat_gbif" = swallowtail_df, 
+                               "ebutterfly" = ebutterfly,
+                               "maine" = maine, "maritime" = maritime,
+                               .id = "data_source")
+
+
 #So, lots more records as time has progressed - seems like probably an inat phenomenom. In the original manuscript, only went up to 2010. Would be nice to include more recent data
 
-#Can we just build a simple faceted plot by decade?
+#Can we just build a simple faceted plot by decade (doesn't include new data from Kent)
 
 northeast = get_map("New York", zoom = 5)
-
 
 swallowtail_df = swallowtail_df %>%
   mutate(decade = year(date) - year(date) %% 10) %>%
@@ -152,18 +186,18 @@ ggplot(swallowtail_df_summary, aes(x = year, y = max_lat, size = n)) +
   scale_size_continuous(breaks = c(5, 25, 100, 500, 1000))
   
 #trying to mimic the map in Figure 1 from the manuscript
-swallowtail_df_map = swallowtail_df %>%
+swallowtail_df_map = swallowtail_master %>%
   mutate(year = year(date), 
          time_frame = as.factor(ifelse(year >= 2000, 2, 1)))
 
 qmap("west virgnia",zoom = 5, maptype = "toner-background") +
-  geom_point(data = swallowtail_df_map, aes(x = longitude, y = latitude, color = time_frame), alpha = 0.5) +
+  geom_point(data = swallowtail_df_map, aes(x = Longitude, y = Latitude, color = time_frame), alpha = 0.5) +
   scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
   labs(x = "Longitude (º) ", y = "Latitude (º)")
 
 #Let's finish this script by writing the host-plant and butterfly data so we can feed them into another script
 #Butterfly output
-write.csv(swallowtail_df, "./data/swallowtail_data.csv")
+write.csv(swallowtail_master, "./data/swallowtail_data.csv")
 
 #need to do weighting for hostplant
 

@@ -33,12 +33,14 @@ swallowtail = swallowtail %>%
 swallowtail = swallowtail %>%
   mutate(year = year(date), 
          time_frame = ifelse(year >= 2000, "T2", "T1")) %>%
-  dplyr::select(-avg_min)
+  rename(latitude = Latitude, longitude = Longitude)
+  
+  #dplyr::select(-avg_min)
 
 host_plant = host_plant %>%
   mutate(year = year(date), 
-         time_frame = ifelse(year >= 2000, "T2", "T1")) %>%
-  dplyr::select(-avg_min)
+         time_frame = ifelse(year >= 2000, "T2", "T1"))
+  #dplyr::select(-avg_min)
 
 #Filtering the data to include stuff east of texas (94º), and in the US, Canada
 
@@ -109,11 +111,6 @@ plot(wrld_simpl,
 plot(predict_presence, add = TRUE)
 plot(wrld_simpl, add = TRUE, border = "grey5")
 
-#building a spatial data frame for plotting in ggplot2
-test_spdf <- as(predict_presence, "SpatialPixelsDataFrame")
-test_df <- as.data.frame(test_spdf)
-colnames(test_df) <- c("value", "x", "y")
-
 #Getting map data
 usa = getData(country = 'USA', level = 1)
 
@@ -147,7 +144,7 @@ ggplot() +
                color=NA, size=0.25, fill = "#440154FF") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
   geom_tile(data=test_df, aes(x=x, y=y, fill=value)) + 
-  geom_polygon(data=simple_map, aes(x=long, y=lat, group=group), 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
   scale_fill_viridis() +
