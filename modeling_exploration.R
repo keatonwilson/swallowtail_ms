@@ -265,5 +265,36 @@ response(maxent_post)
 
 #Model testing - right now it's using all the data. Way overfit - we'll need to take the Machine Learning approach of testing and training. The evaluate function also incorporates background data
 
+#Splitting into train and test - need recipes package
+library(recipes)
+library(rsample)
+
+#Let's work with the whole dataset first
+
+#Split into train and test
+train_test_split = initial_split(swallowtail, prop = 0.80)
+swallowtail_train = training(train_test_split)
+swallowtail_test = testing(train_test_split)
+
 #background data
 bg = randomPoints(bioclim.data, 1000)
+colnames(bg) = c("lon", "lat")
+bg_split = initial_split(bg, prop = 0.80)
+bg_train = training(bg_split)
+bg_test = testing(bg_split)
+
+#making the a matrix for maxent
+swallowtail_matrix_train = as.matrix(swallowtail_train %>%
+                                       select(longitude, latitude))
+swallowtail_matrix_test = as.matrix(swallowtail_test %>%
+                                       select(longitude, latitude))
+
+xm <- maxent(bioclim.data, swallowtail_matrix_train)
+## Loading required namespace: rJava
+plot(xm)
+
+#evaluating model on test data
+e <- evaluate(swallowtail_matrix_test, bg_test, xm, bioclim.data)
+plot(e, 'ROC')
+plot(e, 'TPR')
+boxplot(e)
