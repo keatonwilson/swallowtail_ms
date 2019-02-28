@@ -63,7 +63,8 @@ ggmap(st, maptype = "toner-background", extent = "panel") +
   scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
   labs(x = "Longitude (º) ", y = "Latitude (º)")  
 
-#We can do this from the dismo package
+#We can do this from the dismo package - Interesting point here, this is different from original methods. These climate data are representative of "current" conditions - averaged between 1970 and 2000 (https://www.researchgate.net/publication/316999789_WorldClim_2_New_1-km_spatial_resolution_climate_surfaces_for_global_land_areas). 
+
 bioclim.data <- raster::getData(name = "worldclim",
                                 var = "bio",
                                 res = 2.5,
@@ -118,10 +119,14 @@ post_swallowtail_matrix_test = as.matrix(post_swallowtail_test %>%
                                           select(longitude, latitude))
 
 #t1 model
-xm_pre <- maxent(bioclim.data, pre_swallowtail_matrix_train)
+xm_pre <- maxent(bioclim.data, pre_swallowtail_matrix_train, replicates = 500)
 
 #t2 model
 xm_post = maxent(bioclim.data, post_swallowtail_matrix_train)
+
+#Maybe a better package to do this - still testing this. It's taking forever. 
+library(ENMeval)
+xm_pre_test = ENMevaluate(pre_swallowtail_matrix_train, env = bioclim.data, method = "randomkfold", kfolds = 5, parallel = TRUE)
 
 #evaluating models on test data
 e_pre <- evaluate(pre_swallowtail_matrix_test, bg_test, xm_pre, bioclim.data)
@@ -142,6 +147,28 @@ colnames(test_df_pre) <- c("value", "x", "y")
 test_spdf_post <- as(predict_presence_post, "SpatialPixelsDataFrame")
 test_df_post <- as.data.frame(test_spdf_post)
 colnames(test_df_post) <- c("value", "x", "y")
+
+#Pulling in polygons for states and provinces
+#Getting map data
+usa = getData(country = 'USA', level = 1)
+
+#extract states (need to uppercase everything)
+to_remove = c("Alaska", "Hawaii", "North Dakota", "South Dakota", "Montana", 
+              "Wyoming", "Idaho", "Washington", "Oregon", "Nevada", "California", 
+              "Arizona", "Utah", "New Mexico", "Colorado", "Nebraska", "Texas", 
+              "Oklahoma", "Kansas")
+
+#filtering
+mapping = usa[-match(toupper(to_remove), toupper(usa$NAME_1)),]
+
+#simplying polygons
+simple_map_US = gSimplify(mapping, tol = 0.01, topologyPreserve = TRUE)
+
+#Pulling Canada Province data
+can = getData(country = 'CAN', level = 1)
+province = c("Ontario")
+can_mapping = can[match(toupper(c("Ontario", "Québec")), toupper(can$NAME_1)),]
+simple_map_can = gSimplify(can_mapping, tol = 0.01, topologyPreserve = TRUE)
 
 g1 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
@@ -212,4 +239,3 @@ ggplot() +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_map()
-
