@@ -18,7 +18,6 @@ library(ggthemes)
 library(rgeos)
 library(maps)
 
-
 #register google api for mapping stuff
 register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
 
@@ -119,14 +118,10 @@ post_swallowtail_matrix_test = as.matrix(post_swallowtail_test %>%
                                           select(longitude, latitude))
 
 #t1 model
-xm_pre <- maxent(bioclim.data, pre_swallowtail_matrix_train, replicates = 500)
+xm_pre <- maxent(bioclim.data, pre_swallowtail_matrix_train, args = c("replicates=5"))
 
 #t2 model
-xm_post = maxent(bioclim.data, post_swallowtail_matrix_train)
-
-#Maybe a better package to do this - still testing this. It's taking forever. 
-library(ENMeval)
-xm_pre_test = ENMevaluate(pre_swallowtail_matrix_train, env = bioclim.data, method = "randomkfold", kfolds = 5, parallel = TRUE)
+xm_post = maxent(bioclim.data, post_swallowtail_matrix_train, args = c("replicates=5"))
 
 #evaluating models on test data
 e_pre <- evaluate(pre_swallowtail_matrix_test, bg_test, xm_pre, bioclim.data)
