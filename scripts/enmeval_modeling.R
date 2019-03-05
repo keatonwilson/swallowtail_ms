@@ -4,7 +4,7 @@
 #2019-03-01
 
 #source maining modeling code so we have the data objects to load in below
-source("./models.R")
+source("./scripts/models.R")
 
 #Maybe a better package to do this - still testing this. It's taking forever (46 minutes without parallelization and only 3 folds).
 library(ENMeval)

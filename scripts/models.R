@@ -18,6 +18,9 @@ library(ggthemes)
 library(rgeos)
 library(maps)
 
+#sourcing the prepPara function
+source("./scripts/prepPara_function.R")
+
 #register google api for mapping stuff
 register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
 
