@@ -44,10 +44,11 @@ swallowtail_df %>%
   summarize(n()) %>%
   print(n = 59)
 
-#Let's pull in Kent's data from ebutterfly, maine atlas and maritime atlas
+#Let's pull in Kent's data from ebutterfly, maine atlas, maritime atlas and MA butterfly club
 ebutterfly = read_xlsx(path = "./data/e_butterfly.xlsx")
 maine = read_xlsx(path = "./data/maine_butterfly_atlas.xlsx")
 maritime = read_xlsx(path = "./data/maritime_atlas.xlsx")
+ma_club = read_xlsx(path = "./data/ma_butterfly_club.xlsx")
 
 #cleaning and merging
 ebutterfly = ebutterfly %>%
@@ -68,13 +69,22 @@ maritime = maritime %>%
   mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
   select(-c(Year, Month, Day))
 
+ma_club = ma_club %>%
+  select(Latitude, Longitude, Date) %>%
+  mutate(date = date(Date)) %>%
+  select(-Date)
+
 swallowtail_df = swallowtail_df %>%
-  select(Latitude = latitude, Longitude = longitude, date)
+  select(Latitude = Latitude, Longitude = Longitude, date) %>%
+  mutate(Latitude = as.numeric(Latitude), 
+         Longitude = as.numeric(Longitude))
 
 #binding together
 swallowtail_master = bind_rows("inat_gbif" = swallowtail_df, 
                                "ebutterfly" = ebutterfly,
-                               "maine" = maine, "maritime" = maritime,
+                               "maine" = maine, 
+                               "maritime" = maritime,
+                               "ma_club" = ma_club,
                                .id = "data_source")
 
 
@@ -82,17 +92,19 @@ swallowtail_master = bind_rows("inat_gbif" = swallowtail_df,
 
 #Can we just build a simple faceted plot by decade (doesn't include new data from Kent)
 
-northeast = get_map("New York", zoom = 5)
-
-swallowtail_df = swallowtail_df %>%
-  mutate(decade = year(date) - year(date) %% 10) %>%
+#removing duplicates, filtering older data and restricting data to the chunk of the NE we're interested in
+swallowtail_master = swallowtail_master %>%
   filter(year(date) > 1959) %>%
-  mutate(latitude = as.numeric(latitude), 
-         longitude = as.numeric(longitude))
+  distinct() %>%
+  filter(Latitude < 50 & Latitude > 22) %>%
+  filter(Longitude < -50 & Longitude > -94)
 
+northeast = get_map("New York", zoom = 3)
 ggmap(northeast) +
-  geom_point(data = swallowtail_df, aes(x = longitude, y = latitude)) +
-  facet_wrap(~ decade)
+  geom_point(data = swallowtail_master, aes(x = Longitude, y = Latitude))
+
+#Writing butterfly records
+write.csv(swallowtail_master, "./data/swallowtail_data.csv")
 
 #-----------------------------------------------------------------------------------
 #HOST PLANT DATA
@@ -110,125 +122,18 @@ host_plant_df = occ2df(host_plant)
 #filtering names
 host_plant_df = host_plant_df %>%
   filter(name == "Zanthoxylum americanum") %>%
-  mutate(longitude = as.numeric(longitude), 
-         latitude = as.numeric(latitude))
+  mutate(Longitude = as.numeric(longitude), 
+         Latitude = as.numeric(latitude))
+
+hostplant_master = host_plant_df %>%
+  filter(year(date) > 1959) %>%
+  distinct() %>%
+  filter(Latitude < 50 & Latitude > 22) %>%
+  filter(Longitude < -50 & Longitude > -94)
+
 #quick map
 ggmap(northeast) +
-  geom_point(data = host_plant_df, aes(x = longitude, y = latitude))
+  geom_point(data = hostplant_master, aes(x = Longitude, y = Latitude))
 
-#Let's combine and plot together just to see everything
-combined_df = bind_rows(host_plant_df, swallowtail_df)
-
-east = get_map("West Virginia", zoom = 5)
-ggmap(east) +
-  geom_point(data = combined_df, aes(x = longitude, y = latitude, color = name), alpha = 0.2, size = 1) +
-  scale_color_brewer(palette = "Accent") +
-  stat_density_2d(data = combined_df, aes(x = longitude, y = latitude, fill = name), geom = "polygon", alpha = 0.2) +
-  facet_wrap(~ name)
-
-#----------------------------------------------------------------------
-
-#Ok, so now we need to figure out how to weight 
-#The original manuscript is a little vague - but I think they set up 10 km by 10 km cells, and then count the number of occurences per cell.If a cell has a lot of occurences, it's downweighted, if only a few it's upweighted. 
-#
-#Can we use a distance matrix to do a similar thing with more resolution? Weight a particular value by the average distance to its closest 5 neighbors?
-
-library(rgeos) 
-library(sp)
-library(geosphere)
-
-#New dataframe to work with
-sp_swallowtail = swallowtail_df
-
-#Changing the swallowtail dataframe to an sp object
-coordinates(sp_swallowtail) = ~longitude + latitude
-
-#Constructing a pairwise distance matrix
-d <- distm(sp_swallowtail)
-
-#Closest 5 distances
-min_1 = apply(d, 1, function(x) sort(x, TRUE)[2])
-min_2 = apply(d, 1, function(x) sort(x, TRUE)[3])
-min_3 = apply(d, 1, function(x) sort(x, TRUE)[4])
-min_4 = apply(d, 1, function(x) sort(x, TRUE)[5])
-min_5 = apply(d, 1, function(x) sort(x, TRUE)[6])
-
-#Binding into a dataframe
-mins = data.frame(min_1, min_2, min_3, min_4, min_5)
-
-#binding onto original data
-swallowtail_df = bind_cols(swallowtail_df, mins)
-
-#Calculating averages per occurence and normalizing to generate weights
-#i.e. high average values = points that are on their own, low average values = points that are clumped
-swallowtail_df = swallowtail_df %>%
-  mutate(avg_min = (min_1 + min_2 + min_3 + min_4 + min_5)/5,
-  norm_avg_min = (avg_min - mean(avg_min))/sd(avg_min)) %>%
-  select(-c(min_1:min_5))
-
-#Simple Regression - generating summary dataframe
-swallowtail_df_summary = swallowtail_df %>%
-  mutate(year = year(date)) %>%
-  group_by(year) %>%
-  summarize(n = n(), 
-            max_lat = max(latitude))
-
-#plotting
-ggplot(swallowtail_df_summary, aes(x = year, y = max_lat, size = n)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(data = swallowtail_df_summary %>%
-                filter(year < 2000), method = "lm", color = "black", show.legend = FALSE) +
-  geom_smooth(data = swallowtail_df_summary %>%
-                filter(year > 2000), method = "lm", color = "black", show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "Year", y = "Maximum Latitude (º)") +
-  scale_color_discrete() +
-  scale_size_continuous(breaks = c(5, 25, 100, 500, 1000))
-  
-#trying to mimic the map in Figure 1 from the manuscript
-swallowtail_df_map = swallowtail_master %>%
-  mutate(year = year(date), 
-         time_frame = as.factor(ifelse(year >= 2000, 2, 1)))
-
-qmap("west virgnia",zoom = 5, maptype = "toner-background") +
-  geom_point(data = swallowtail_df_map, aes(x = Longitude, y = Latitude, color = time_frame), alpha = 0.5) +
-  scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
-  labs(x = "Longitude (º) ", y = "Latitude (º)")
-
-#Let's finish this script by writing the host-plant and butterfly data so we can feed them into another script
-#Butterfly output
-write.csv(swallowtail_master, "./data/swallowtail_data.csv")
-
-#need to do weighting for hostplant
-
-#New dataframe to work with
-sp_hostplant = host_plant_df
-
-#Changing the swallowtail dataframe to an sp object
-coordinates(sp_hostplant) = ~longitude + latitude
-
-#Constructing a pairwise distance matrix
-d <- distm(sp_hostplant)
-
-#Closest 5 distances
-min_1 = apply(d, 1, function(x) sort(x, TRUE)[2])
-min_2 = apply(d, 1, function(x) sort(x, TRUE)[3])
-min_3 = apply(d, 1, function(x) sort(x, TRUE)[4])
-min_4 = apply(d, 1, function(x) sort(x, TRUE)[5])
-min_5 = apply(d, 1, function(x) sort(x, TRUE)[6])
-
-#Binding into a dataframe
-mins = data.frame(min_1, min_2, min_3, min_4, min_5)
-
-#binding onto original data
-host_plant_df = bind_cols(host_plant_df, mins)
-
-#Calculating averages per occurence and normalizing to generate weights
-#i.e. high average values = points that are on their own, low average values = points that are clumped
-host_plant_df = host_plant_df %>%
-  mutate(avg_min = (min_1 + min_2 + min_3 + min_4 + min_5)/5,
-         norm_avg_min = (avg_min - mean(avg_min))/sd(avg_min)) %>%
-  select(-c(min_1:min_5))
-
-#writing data
-write_csv(host_plant_df, "./data/host_plant_data.csv")
+#Writing hostplant records
+write.csv(hostplant_master, "./data/hostplant_data.csv")
