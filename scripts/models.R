@@ -17,6 +17,7 @@ library(viridis)
 library(ggthemes)
 library(rgeos)
 library(maps)
+library(ggpubr)
 
 #sourcing the prepPara function
 source("./scripts/prepPara_function.R")
@@ -44,7 +45,7 @@ host_plant = host_plant %>%
          time_frame = ifelse(year >= 2000, "T2", "T1"))
 #dplyr::select(-avg_min)
 
-#Filtering the data to include stuff east of texas (94º), and in the US, Canada
+#Filtering the data to include stuff east of texas (94º), and in the US, Canada. Should be done from data_import_clean script, but good to double check
 lon_min = -94
 lon_max = -65
 lat_min = 25
@@ -120,23 +121,34 @@ post_swallowtail_matrix_train = as.matrix(post_swallowtail_train %>%
 post_swallowtail_matrix_test = as.matrix(post_swallowtail_test %>%
                                           select(longitude, latitude))
 
-#t1 model
-xm_pre <- maxent(bioclim.data, pre_swallowtail_matrix_train, args = c("replicates=5"))
+#t1 model - testing with replication
+xm_pre <- maxent(bioclim.data, pre_swallowtail_matrix_train, args = c("replicates=5", "replicatetype=crossvalidate"))
 
-#t2 model
+#t2 model - testing with replication
 xm_post = maxent(bioclim.data, post_swallowtail_matrix_train, args = c("replicates=5"))
 
+xm_pre
+xm_post
+
+#They both seem reasonable, with AUC scores that are good to excellent - let's build full models
+xm_pre_final = maxent(bioclim.data, pre_swallowtail_matrix_train)
+xm_post_final = maxent(bioclim.data, post_swallowtail_matrix_train)
+
+xm_pre_final
+xm_post_final
+#The AUC for T2 isn't fantastic on training data... maybe we need to do some feature selection down the line. For now, let's just see how it does on test data. 
+
 #evaluating models on test data
-e_pre <- evaluate(pre_swallowtail_matrix_test, bg_test, xm_pre, bioclim.data)
+e_pre <- evaluate(p = pre_swallowtail_matrix_test, bg_test, xm_pre_final, bioclim.data)
 plot(e_pre, 'ROC')
 
-e_post = evaluate(post_swallowtail_matrix_test, bg_test, xm_post, bioclim.data)
+e_post = evaluate(post_swallowtail_matrix_test, a = bg_test,  model = xm_post_final, x = bioclim.data)
 plot(e_post, 'ROC')
 
 #building predictions and mapping
-predict_presence_pre = dismo::predict(object = xm_pre, x = bioclim.data, ext = geographic.extent)
+predict_presence_pre = dismo::predict(object = xm_pre_final, x = bioclim.data, ext = geographic.extent)
 
-predict_presence_post = dismo::predict(object = xm_post, x = bioclim.data, ext = geographic.extent)
+predict_presence_post = dismo::predict(object = xm_post_final, x = bioclim.data, ext = geographic.extent)
 
 test_spdf_pre <- as(predict_presence_pre, "SpatialPixelsDataFrame")
 test_df_pre <- as.data.frame(test_spdf_pre)
@@ -198,6 +210,8 @@ g2 = ggplot() +
 
 ggarrange(g1, g2, common.legend = TRUE, labels = c("1960-2000", "2000-2018"))
 
+test_df_post
+
 #Threshold maps
 tr_pre = threshold(e_pre, 'spec_sens')
 tr_post = threshold(e_post, 'spec_sens')
@@ -206,6 +220,16 @@ pre_threshold = test_df_pre %>%
   filter(value > tr_pre)
 post_threshold = test_df_post %>%
   filter(value > tr_post)
+
+#binding
+threshold_df = bind_rows("t1" = pre_threshold, "t2" = post_threshold, .id = "timeframe")
+
+#plotting
+ggplot(threshold_df, aes(x = y, fill = timeframe)) +
+  geom_density(alpha = 0.8) +
+  theme_classic() +
+  labs(x = "Latitude", y = "Kernel Density Estimate") +
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-2000", "2000-2018"))
 
 #T1 
 #

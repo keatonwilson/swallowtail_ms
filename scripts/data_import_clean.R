@@ -80,7 +80,7 @@ bamona = bamona %>%
   mutate(date = as.Date(date, "%m/%d/%Y"))
 
 swallowtail_df = swallowtail_df %>%
-  select(Latitude = Latitude, Longitude = Longitude, date) %>%
+  select(Latitude = latitude, Longitude = longitude, date) %>%
   mutate(Latitude = as.numeric(Latitude), 
          Longitude = as.numeric(Longitude))
 
@@ -90,6 +90,7 @@ swallowtail_master = bind_rows("inat_gbif" = swallowtail_df,
                                "maine" = maine, 
                                "maritime" = maritime,
                                "ma_club" = ma_club,
+                               "bamona" = bamona,
                                .id = "data_source")
 
 
