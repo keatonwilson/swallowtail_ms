@@ -49,6 +49,7 @@ ebutterfly = read_xlsx(path = "./data/e_butterfly.xlsx")
 maine = read_xlsx(path = "./data/maine_butterfly_atlas.xlsx")
 maritime = read_xlsx(path = "./data/maritime_atlas.xlsx")
 ma_club = read_xlsx(path = "./data/ma_butterfly_club.xlsx")
+bamona = read_csv("./data/bamona_data.csv")
 
 #cleaning and merging
 ebutterfly = ebutterfly %>%
@@ -73,6 +74,10 @@ ma_club = ma_club %>%
   select(Latitude, Longitude, Date) %>%
   mutate(date = date(Date)) %>%
   select(-Date)
+
+bamona = bamona %>%
+  select(Latitude = `Lat/Long`, Longitude = Longitude, date =`Observation Date`) %>%
+  mutate(date = as.Date(date, "%m/%d/%Y"))
 
 swallowtail_df = swallowtail_df %>%
   select(Latitude = Latitude, Longitude = Longitude, date) %>%
