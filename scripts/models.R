@@ -25,6 +25,7 @@ source("./scripts/prepPara_function.R")
 #register google api for mapping stuff
 register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
 
+# Importing Data and Cleaning ---------------------------------------------
 #Pulling in data that has been cleaned in previous script
 swallowtail = read_csv("./data/swallowtail_data.csv")
 host_plant = read_csv("./data/host_plant_data.csv")
@@ -66,7 +67,9 @@ ggmap(st, maptype = "toner-background", extent = "panel") +
   scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
   labs(x = "Longitude (º) ", y = "Latitude (º)")  
 
+# Importing Bioclim Data and Cropping -------------------------------------
 #We can do this from the dismo package - Interesting point here, this is different from original methods. These climate data are representative of "current" conditions - averaged between 1970 and 2000 (https://www.researchgate.net/publication/316999789_WorldClim_2_New_1-km_spatial_resolution_climate_surfaces_for_global_land_areas). 
+
 
 bioclim.data <- raster::getData(name = "worldclim",
                                 var = "bio",
@@ -83,6 +86,7 @@ geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_
 # Crop bioclim data to geographic extent of swallowtails
 bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
 
+# Swallowtail Model and Figures -------------------------------------------
 #Splitting into train and test - need recipes package
 library(recipes)
 library(rsample)
@@ -265,8 +269,7 @@ ggplot() +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_map()
 
-#Let's also build the other useful figures
-#First - the inset figure 
+#Inset Figure
 swallowtail_inset = swallowtail %>%
   group_by(year) %>%
   summarize(max_lat = max(latitude), 
@@ -283,8 +286,8 @@ swallowtail_inset = swallowtail %>%
   scale_size_continuous(name = "Number of Observations") +
   labs(x = "Year", y = "Maximum Latitude (º)")
   
-#----------------------------------------------------------------------------
-#Need to replicate analyses above for host plant
+
+# Host plant models and Figures -------------------------------------------
 
   #Split the data into t1 and t2
   hostplant_t1 = host_plant %>%
@@ -461,4 +464,18 @@ swallowtail_inset = swallowtail %>%
     theme(legend.key.width=unit(2, "cm")) +
     coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
     theme_map()
+
+  #Inset Figure - HP
+  hp_inset = host_plant %>%
+    group_by(year) %>%
+    summarize(max_lat = max(latitude), 
+              n = n()) %>%
+    filter(max_lat > 35 & year > 1959)
+  
+  ggplot(data = hp_inset, aes(x = year, y = max_lat, size = n)) +
+    geom_point(alpha = 0.8) +
+    geom_smooth(method = "lm", show.legend = FALSE) +
+    theme_classic() +
+    scale_size_continuous(name = "Number of Observations") +
+    labs(x = "Year", y = "Maximum Latitude (º)") 
   
