@@ -1,0 +1,256 @@
+#blockCV and Modeling Script for Swallowtail and hostplant data
+#Keaton Wilson
+#keatonwilson@me.com
+#2019-03-21
+
+#libraries
+library(blockCV)
+library(tidyverse)
+library(raster)
+library(maxnet)
+library(dismo)
+library(ENMeval)
+
+
+# Data Preparation --------------------------------------------------------
+
+#importing swallowtail, hostplant and environmental data
+#butterfly
+swallowtail = read_csv("./data/swallowtail_data.csv")
+swallowtail = swallowtail[,-1] %>%
+  select(longitude, latitude, date, year, time_frame)
+
+#hostplant
+hostplant = read_csv("./data/hostplant_data.csv")
+hostplant = hostplant[,-1]
+
+#bioclim environmental variables
+bioclim.data <- raster::getData(name = "worldclim",
+                                var = "bio",
+                                res = 2.5,
+                                path = "./data/")
+
+# Determine geographic extent of our data
+max_lat_swallowtail <- ceiling(max(swallowtail$latitude))
+min_lat_swallowtail <- floor(min(swallowtail$latitude))
+max_lon_swallowtail <- ceiling(max(swallowtail$longitude))
+min_lon_swallowtail <- floor(min(swallowtail$longitude))
+geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_lat_swallowtail, max_lat_swallowtail))
+
+# Crop bioclim data to geographic extent of swallowtails
+bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
+
+#Dividing host plant and swallowtail into respective time periods
+#We essentially will have 4 models (HPT1, HPT2, STT1, STT2)
+
+swallowtail_t1 = swallowtail %>%
+  filter(time_frame == "T1")
+
+swallowtail_t2 = swallowtail %>%
+  filter(time_frame == "T2")
+
+hostplant_t1 = hostplant %>%
+  filter(time_frame == "T1")
+
+hostplant_t2 = hostplant %>%
+  filter(time_frame == "T2")
+
+#Generating background points
+#background data
+bg_swallowtail_t1 = dismo::randomPoints(bioclim.data, 10000)
+colnames(bg_swallowtail_t1) = c("longitude", "latitude")
+
+bg_swallowtail_t2 = randomPoints(bioclim.data, 10000)
+colnames(bg_swallowtail_t2) = c("longitude", "latitude")
+
+bg_hostplant_t1 = randomPoints(bioclim.data, 10000)
+colnames(bg_hostplant_t1) = c("longitude", "latitude")
+
+bg_hostplant_t2 = randomPoints(bioclim.data, 10000)
+colnames(bg_hostplant_t2) = c("longitude", "latitude")
+
+#Merging background and occurence data for blockCV
+df_st_t1 = data.frame(swallowtail_t1) %>%
+  mutate(pb = 1) %>%
+  select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_swallowtail_t1) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  select(-pb)
+
+df_st_t2 = data.frame(swallowtail_t2) %>%
+  mutate(pb = 1) %>%
+  select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_swallowtail_t2) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  select(-pb)
+
+df_hp_t1 = data.frame(hostplant_t1) %>%
+  mutate(pb = 1) %>%
+  select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_hostplant_t1) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  select(-pb)
+
+df_hp_t2 = data.frame(hostplant_t1) %>%
+  mutate(pb = 1) %>%
+  select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_hostplant_t1) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  select(-pb)
+
+#Spatialpoints
+dfspstt1 = SpatialPointsDataFrame(df_st_t1[,c("longitude","latitude")], 
+                               df_st_t1, 
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+dfspstt2 = SpatialPointsDataFrame(df_st_t2[,c("longitude","latitude")], 
+                                  df_st_t2, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+dfsphpt1 = SpatialPointsDataFrame(df_hp_t1[,c("longitude","latitude")], 
+                                  df_hp_t1, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+dfsphpt2 = SpatialPointsDataFrame(df_hp_t2[,c("longitude","latitude")], 
+                                  df_hp_t2, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+# blockCV Train-Test Split for all 4 models ------------------------------------------------
+sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
+                   species = "Species",
+                   rasterLayer = bioclim.data,
+                   theRange = 400000, # size of the blocks
+                   k = 5,
+                   selection = "random",
+                   iteration = 250, # find evenly dispersed folds
+                   biomod2Format = TRUE,
+                   xOffset = 0, # shift the blocks horizontally
+                   yOffset = 0,
+                   progress = T)
+
+sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
+
+sb_hp_t1 <- spatialBlock(speciesData = dfspstt2,
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
+
+sb_hp_t2 <- spatialBlock(speciesData = dfspstt2,
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
+
+#Getting dataframes to feed into the model (dropping NAs)
+data_st_t1 = raster::extract(bioclim.data, df_st_t1[,-3], df = TRUE) %>%
+  bind_cols(df_st_t1) %>%
+  drop_na() %>%
+  select(-ID, Species, longitude, latitude, bio1:bio19)
+
+data_st_t2 = raster::extract(bioclim.data, df_st_t2[,-3], df = TRUE) %>%
+  bind_cols(df_st_t2) %>%
+  drop_na() %>%
+  select(-ID, Species, longitude, latitude, bio1:bio19)
+
+data_hp_t1 = raster::extract(bioclim.data, df_hp_t1[,-3], df = TRUE) %>%
+  bind_cols(df_hp_t1) %>%
+  drop_na() %>%
+  select(-ID, Species, longitude, latitude, bio1:bio19)
+
+data_hp_t2 = raster::extract(bioclim.data, df_hp_t2[,-3], df = TRUE) %>%
+  bind_cols(df_hp_t2) %>%
+  drop_na() %>%
+  select(-ID, Species, longitude, latitude, bio1:bio19)
+
+#vectors of presence-background
+pb_st_t1 = data_st_t1$Species
+pb_st_t2 = data_st_t2$Species
+pb_hp_t1 = data_hp_t1$Species
+pb_hp_t2 = data_hp_t2$Species
+
+#folds for each model
+sb_st_t1_folds = sb_st_t1$folds
+sb_st_t2_folds = sb_st_t2$folds
+sb_hp_t1_folds = sb_hp_t1$folds
+sb_hp_t2_folds = sb_hp_t2$folds
+
+#Breaking into training and testing 
+for(k in 1:length(sb_st_t1_folds)){
+  pb_st_t1_train_index <- unlist(sb_st_t1_folds[[k]][1]) # extract the training set indices
+  pb_st_t1_test_index <- unlist(sb_st_t1_folds[[k]][2]) # extract the test set indices
+}
+
+for(k in 1:length(sb_st_t2_folds)){
+  pb_st_t2_train_index <- unlist(sb_st_t2_folds[[k]][1]) # extract the training set indices
+  pb_st_t2_test_index <- unlist(sb_st_t2_folds[[k]][2]) # extract the test set indices
+}
+
+for(k in 1:length(sb_hp_t1_folds)){
+  pb_hp_t1_train_index <- unlist(sb_hp_t1_folds[[k]][1]) # extract the training set indices
+  pb_hp_t1_test_index <- unlist(sb_hp_t1_folds[[k]][2]) # extract the test set indices
+}
+
+for(k in 1:length(sb_hp_t2_folds)){
+  pb_hp_t2_train_index <- unlist(sb_hp_t2_folds[[k]][1]) # extract the training set indices
+  pb_hp_t2_test_index <- unlist(sb_hp_t2_folds[[k]][2]) # extract the test set indices
+}
+
+#training and testing
+pb_st_t1_train_data = data_st_t1[pb_st_t1_train_index,]
+pb_st_t1_test_data = data_st_t1[pb_st_t1_test_index,]
+
+pb_st_t2_train_data = data_st_t2[pb_st_t2_train_index,]
+pb_st_t2_test_data = data_st_t2[pb_st_t2_test_index,]
+
+pb_hp_t1_train_data = data_hp_t1[pb_hp_t1_train_index,]
+pb_hp_t1_test_data = data_hp_t1[pb_hp_t1_test_index,]
+
+pb_hp_t2_train_data = data_hp_t2[pb_hp_t2_train_index,]
+pb_hp_t2_test_data = data_hp_t2[pb_hp_t2_test_index,]
+
+#Quality control
+dim(pb_st_t1_train_data)
+dim(pb_st_t1_test_data) #Looks good - test data is about 20%
+
+#Formatting occurences and background for sending to ENMevaluate
+p_train = train_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+a_train = train_data %>%
+  filter(Species == 0) %>%
+  select(longitude, latitude)
+
+p_test = test_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+a_test = test_data %>%
+  filter(Species == 0) %>%
+  select(longitude, latitude)
