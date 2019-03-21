@@ -117,6 +117,9 @@ a_test = test_data %>%
 #First attempt at a model - took ~115 minutes to run
 eval_1 = ENMevaluate(occ = p_train, bg.coords = a_train, env = bioclim, method = 'randomkfold', kfolds = 5, algorithm = 'maxent.jar')
 
+#saving
+saveRDS(eval_1, "./output/model_tuning_set.rds")
+
 #Best model according to one metric - average AUC on test data - LQHPT with a 0.5 regularization multiplier
 eval_1@results[which(eval_1@results$avg.test.AUC== max(eval_1@results$avg.test.AUC)),]
 eval.plot(eval_1@results, 'avg.test.AUC', var = 'var.test.AUC')
@@ -136,6 +139,9 @@ rm_best = aicmods$rm
 
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 mx_best = maxent(bioclim.data, as.matrix(swallowtail[,1:2]), args = maxent.args[[1]])
+
+#save model
+saveRDS(mx_best, "./output/full_model.rds")
 
 #Predictions from full model
 # Determine geographic extent of our data

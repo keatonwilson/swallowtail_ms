@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 data/wc2-5
+output/full_model.rds
+output/model_tuning_set.rds
