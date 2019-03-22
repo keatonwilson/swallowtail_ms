@@ -239,18 +239,84 @@ dim(pb_st_t1_train_data)
 dim(pb_st_t1_test_data) #Looks good - test data is about 20%
 
 #Formatting occurences and background for sending to ENMevaluate
-p_train = train_data %>%
+#Train and test for swallowtail t1
+p_st_t1_train = pb_st_t1_train_data %>%
   filter(Species == 1) %>%
   select(longitude, latitude)
 
-a_train = train_data %>%
-  filter(Species == 0) %>%
-  select(longitude, latitude)
-
-p_test = test_data %>%
+p_st_t1_test = pb_st_t1_test_data %>%
   filter(Species == 1) %>%
   select(longitude, latitude)
 
-a_test = test_data %>%
-  filter(Species == 0) %>%
+#train and test for swallowtail t2
+p_st_t2_train = pb_st_t2_train_data %>%
+  filter(Species == 1) %>%
   select(longitude, latitude)
+
+p_st_t2_test = pb_st_t2_test_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+#train and test for hostplant t1
+p_hp_t1_train = pb_hp_t1_train_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+p_hp_t2_train = pb_hp_t2_train_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+#train and test for hostplant t2
+p_hp_t2_train = pb_hp_t2_train_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+p_hp_t2_test = pb_hp_t2_test_data %>%
+  filter(Species == 1) %>%
+  select(longitude, latitude)
+
+
+# Modeling ----------------------------------------------------------------
+if (Sys.getenv("JAVA_HOME")!="")
+  Sys.setenv(JAVA_HOME="")
+library(rJava)
+
+
+#Swallowtail t1 
+eval_st_t1 = ENMevaluate(occ = p_st_t1_train, 
+                     bg.coords = bg_swallowtail_t1, 
+                     env = bioclim.data, 
+                     method = 'randomkfold', 
+                     kfolds = 5, 
+                     algorithm = 'maxent.jar')
+
+#Swallowtail t2
+eval_st_t2 = ENMevaluate(occ = p_st_t2_train, 
+                     bg.coords = bg_swallowtail_t2, 
+                     env = bioclim.data, 
+                     method = 'randomkfold', 
+                     kfolds = 5, 
+                     algorithm = 'maxent.jar')
+
+#Hostplant t1
+eval_hp_t1 = ENMevaluate(occ = p_hp_t1_train, 
+                     bg.coords = bg_hostplant_t1, 
+                     env = bioclim.data, 
+                     method = 'randomkfold', 
+                     kfolds = 5, 
+                     algorithm = 'maxent.jar')
+
+#Hostplant t2
+eval_hp_t2 = ENMevaluate(occ = p_hp_t2_train, 
+                     bg.coords = bg_hostplant_t2, 
+                     env = bioclim.data, 
+                     method = 'randomkfold', 
+                     kfolds = 5, 
+                     algorithm = 'maxent.jar')
+
+#saving model objects
+saveRDS(eval_st_t1, "./models/eval_st_t1.rds")
+saveRDS(eval_st_t2, "./models/eval_st_t2.rds")
+saveRDS(eval_hp_t1, "./models/eval_hp_t1.rds")
+saveRDS(eval_hp_t2, "./models/eval_hp_t2.rds")
+
