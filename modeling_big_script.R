@@ -320,3 +320,19 @@ saveRDS(eval_st_t2, "./models/eval_st_t2.rds")
 saveRDS(eval_hp_t1, "./models/eval_hp_t1.rds")
 saveRDS(eval_hp_t2, "./models/eval_hp_t2.rds")
 
+
+# Model Evaluation --------------------------------------------------------
+
+#Function to build set of evaluation plots - just plug in the appropriate eval model object from above
+
+eval_plots = function(eval_object = NULL) {
+par(mfrow=c(2,3))
+eval.plot(eval_object@results)
+eval.plot(eval_object@results, 'avg.test.AUC', legend = F)
+eval.plot(eval_object@results, 'avg.diff.AUC', legend = F)
+eval.plot(eval_object@results, 'avg.test.or10pct', legend = F)
+eval.plot(eval_object@results, 'avg.test.orMTP', legend = F)
+plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_object@results$features, pch=21, cex= eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
+legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
+mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
+}
