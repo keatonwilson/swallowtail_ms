@@ -262,7 +262,7 @@ p_hp_t1_train = pb_hp_t1_train_data %>%
   filter(Species == 1) %>%
   select(longitude, latitude)
 
-p_hp_t2_train = pb_hp_t2_train_data %>%
+p_hp_t1_test = pb_hp_t2_train_data %>%
   filter(Species == 1) %>%
   select(longitude, latitude)
 
@@ -325,6 +325,12 @@ saveRDS(eval_hp_t2, "./models/eval_hp_t2.rds")
 
 #Function to build set of evaluation plots - just plug in the appropriate eval model object from above
 
+#reading in models - otherwise things will take too much time
+eval_st_t1 = readRDS("./models/eval_st_t1.rds")
+eval_st_t2 = readRDS("./models/eval_st_t2.rds")
+eval_hp_t1 = readRDS("./models/eval_hp_t1.rds")
+eval_hp_t2 = readRDS("./models/eval_hp_t2.rds")
+
 eval_plots = function(eval_object = NULL) {
 par(mfrow=c(2,3))
 eval.plot(eval_object@results)
@@ -336,3 +342,96 @@ plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_o
 legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
 mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
 }
+
+#Evaluation plots
+eval_plots(eval_st_t1)
+eval_plots(eval_st_t2)
+eval_plots(eval_hp_t1)
+eval_plots(eval_hp_t2)
+
+#Picking the best model based on highest AUC for each set
+#Pulling out indices of the "best" model based on AUC scores - if there are two models that are equal, it pulls the first.
+best_index_st_t1 = as.numeric(row.names(eval_st_t1@results[which(eval_st_t1@results$avg.test.AUC== max(eval_st_t1@results$avg.test.AUC)),]))[1]
+
+best_index_st_t2 = as.numeric(row.names(eval_st_t2@results[which(eval_st_t2@results$avg.test.AUC== max(eval_st_t2@results$avg.test.AUC)),]))[1]
+
+best_index_hp_t1 = as.numeric(row.names(eval_hp_t1@results[which(eval_hp_t1@results$avg.test.AUC== max(eval_hp_t1@results$avg.test.AUC)),]))[1]
+
+best_index_hp_t2 = as.numeric(row.names(eval_hp_t2@results[which(eval_hp_t2@results$avg.test.AUC== max(eval_hp_t2@results$avg.test.AUC)),]))[1]
+
+#Using indices generated above to pull out the model objects
+best_st_t1 = eval_st_t1@models[[best_index_st_t1]]
+best_st_t2 = eval_st_t2@models[[best_index_st_t2]]
+best_hp_t1 = eval_hp_t1@models[[best_index_hp_t1]]
+best_hp_t2 = eval_hp_t2@models[[best_index_hp_t2]]
+
+#Evaluate on test data
+ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bioclim.data)
+ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bioclim.data)
+ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
+ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
+
+
+#Let's build final models
+
+#Swallowtail T1
+#Pulling out features
+auc_mod = eval_st_t1@results[best_index_st_t1,]
+FC_best = as.character(auc_mod$features[1])
+rm_best = auc_mod$rm
+
+#setting maxent arguments
+maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+
+#Full Swallowtail Model
+mx_best_st_t1 = maxent(bioclim.data, as.matrix(swallowtail_t1[,1:2]), args = maxent.args[[1]])
+
+#save model
+saveRDS(mx_best_st_t1, "./models/full_best_st_t1.rds")
+
+#Swallowtail T2
+#Pulling out features
+auc_mod = eval_st_t2@results[best_index_st_t2,]
+FC_best = as.character(auc_mod$features[1])
+rm_best = auc_mod$rm
+
+#setting maxent arguments
+maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+
+#Full Swallowtail Model
+mx_best_st_t2 = maxent(bioclim.data, as.matrix(swallowtail_t2[,1:2]), args = maxent.args[[1]])
+
+#save model
+saveRDS(mx_best_st_t2, "./models/full_best_st_t2.rds")
+
+#Hostplant T1
+#Pulling out features
+auc_mod = eval_hp_t1@results[best_index_hp_t1,]
+FC_best = as.character(auc_mod$features[1])
+rm_best = auc_mod$rm
+
+#setting maxent arguments
+maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+
+#Full Swallowtail Model
+mx_best_hp_t1 = maxent(bioclim.data, as.matrix(hostplant_t1[,1:2]), args = maxent.args[[1]])
+
+#save model
+saveRDS(mx_best_hp_t1, "./models/full_best_hp_t1.rds")
+
+#Hostplant T2
+#Pulling out features
+auc_mod = eval_st_t2@results[best_index_st_t2,]
+FC_best = as.character(auc_mod$features[1])
+rm_best = auc_mod$rm
+
+#setting maxent arguments
+maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+
+#Full Swallowtail Model
+mx_best_hp_t2 = maxent(bioclim.data, as.matrix(hostplant_t2[,1:2]), args = maxent.args[[1]])
+
+#save model
+saveRDS(mx_best_hp_t2, "./models/full_best_hp_t2.rds")
+
+
