@@ -372,6 +372,8 @@ ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = 
 ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
 
 
+
+# Selecting Final Models and Running on All Data --------------------------
 #Let's build final models
 
 #Swallowtail T1
@@ -383,7 +385,7 @@ rm_best = auc_mod$rm
 #setting maxent arguments
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
-#Full Swallowtail Model
+#Full Swallowtail T1 Model
 mx_best_st_t1 = maxent(bioclim.data, as.matrix(swallowtail_t1[,1:2]), args = maxent.args[[1]])
 
 #save model
@@ -398,7 +400,7 @@ rm_best = auc_mod$rm
 #setting maxent arguments
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
-#Full Swallowtail Model
+#Full Swallowtail T2 Model
 mx_best_st_t2 = maxent(bioclim.data, as.matrix(swallowtail_t2[,1:2]), args = maxent.args[[1]])
 
 #save model
@@ -413,7 +415,7 @@ rm_best = auc_mod$rm
 #setting maxent arguments
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
-#Full Swallowtail Model
+#Full Hostplant T1 Model
 mx_best_hp_t1 = maxent(bioclim.data, as.matrix(hostplant_t1[,1:2]), args = maxent.args[[1]])
 
 #save model
@@ -428,7 +430,7 @@ rm_best = auc_mod$rm
 #setting maxent arguments
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
-#Full Swallowtail Model
+#Full Hostplant T2 Model
 mx_best_hp_t2 = maxent(bioclim.data, as.matrix(hostplant_t2[,1:2]), args = maxent.args[[1]])
 
 #save model
