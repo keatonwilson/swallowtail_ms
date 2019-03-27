@@ -172,6 +172,8 @@ g4 = ggplot() +
   ggtitle("2000-2019") +
   theme_map()
   
+maxent_raw_hp = ggarrange(g3, g4, common.legend = TRUE)
+maxent_raw_hp
 
 # Threshold Maps and Density Figures --------------------------------------
 
@@ -207,23 +209,27 @@ threshold_df_st = bind_rows("t1" = st_t1_threshold, "t2" = st_t2_threshold, .id 
 threshold_df_hp = bind_rows("t1" = hp_t1_threshold, "t2" = hp_t2_threshold, .id = "timeframe")
 
 #plotting st
-ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
+g5 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
   geom_density(alpha = 0.8) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
-  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019"))
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
+  ggtitle("Swallowtail")
 
 #plotting hp
-ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
+g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
   geom_density(alpha = 0.8) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
-  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019"))
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
+  ggtitle("Hostplant")
 
+histograms_plot = ggarrange(g5, g6, common.legend = TRUE)
+histograms_plot
 
 #threshold maps
 #Swallowtail T1
-g5 = ggplot() +  
+g7 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "grey10") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
@@ -231,7 +237,7 @@ g5 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey75", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
-  geom_point(data = swallowtail_t1, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow") +
+  geom_point(data = swallowtail_t1, aes(x = longitude, y = latitude), alpha = 0.5, color = "yellow", shape = 3) +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
@@ -239,7 +245,7 @@ g5 = ggplot() +
   ggtitle("1960-1999")
 
 #T2
-g6 = ggplot() +  
+g8 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "grey10") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
@@ -247,11 +253,12 @@ g6 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey75", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
-  geom_point(data = swallowtail_t2, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow") +
+  geom_point(data = swallowtail_t2, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow", shape = 3) +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_map() +
   ggtitle("2000-2019")
 
-maxent_th_st = ggarrange(g5, g6, common.legend = TRUE)
+maxent_th_st = ggarrange(g7, g8, common.legend = TRUE)
+maxent_th_st

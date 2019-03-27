@@ -1,0 +1,941 @@
+---
+title: "Swallowtail SDM Report"
+author: "Keaton Wilson"
+date: "3/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary  
+
+This report outlines work done so far on adapting and building on previous analyses to examine changes in the range of the Giant Swallowtail (*Papilio cresphontes*) over the last ~60 years, with an emphasis on a northern range shift since 2000. The project leverages citizen-science occurrence data from inat, gbif, ebutterfly and a variety of other small datasets from organizations in the northeast. The OSF project can be found [here](https://osf.io/84kxd/). This report is an overview, and there is some code ommitted - the full project can be found on [github](www.github.com/keatonwilson/swallowtail_ms).
+
+Specifically, this report details updated analyses that can be broken into three main sections:  
+1. Data Retrieval and Cleaning  
+2. SDM Model Tuning and Evaluation  
+3. Figure Generation and Preliminary Results  
+
+# Data Retrieval and Cleaning  
+
+### Data import of *P. cresphontes* from various sources using the `spocc` package  
+
+```{r eval = FALSE, message=FALSE, error=FALSE}
+#Appropriate packages
+library(spocc)
+library(readxl)
+library(lubridate)
+library(tidyverse)
+
+#Let's query inat and GBIF for swallowtail records 
+swallowtail = occ(query = "Papilio cresphontes*", from = c("gbif", "inat"),
+                  has_coords = TRUE, limit = 10000)
+
+#Filtering out anything from inat that isn't research grade
+swallowtail$inat$data$`Papilio_cresphontes*` = swallowtail$inat$data$`Papilio_cresphontes*` %>%
+  filter(quality_grade == "research")
+  
+#Aggregating records into a dataframe
+swallowtail_df = occ2df(swallowtail)
+
+#Lots of naming errors (let's do some filtering)
+swallowtail_df = swallowtail_df %>%
+  filter(name == 'Papilio cresphontes')
+
+#let's check out time periods
+swallowtail_df %>%
+  mutate(year = year(date)) %>%
+  filter(year >= 1960) %>%
+  group_by(year) %>%
+  summarize(n()) %>%
+  print(n = 59)
+
+#Let's pull in Kent's data from ebutterfly, maine atlas, maritime atlas and MA butterfly club
+ebutterfly = read_xlsx(path = "./data/e_butterfly.xlsx")
+maine = read_xlsx(path = "./data/maine_butterfly_atlas.xlsx")
+maritime = read_xlsx(path = "./data/maritime_atlas.xlsx")
+ma_club = read_xlsx(path = "./data/ma_butterfly_club.xlsx")
+bamona = read_csv("./data/bamona_data.csv")
+
+#cleaning and merging
+ebutterfly = ebutterfly %>%
+  select(OccuranceID, 'Date Observed', Latitude, Longitude) %>%
+  select(Latitude, Longitude, Date = 'Date Observed') %>%
+  mutate(date = as.Date(Date)) %>%
+  select(-Date)
+
+maine = maine %>%
+  select(Latitude, Longitude, Year, Month, Day) %>%
+  filter(!is.na(Latitude) & !is.na(Longitude)) %>%
+  mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
+  select(-c(Year, Month, Day))
+
+maritime = maritime %>%
+  select(Latitude, Longitude, Year, Month, Day) %>%
+  filter(Day != "XX") %>%
+  mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
+  select(-c(Year, Month, Day))
+
+ma_club = ma_club %>%
+  select(Latitude, Longitude, Date) %>%
+  mutate(date = date(Date)) %>%
+  select(-Date)
+
+bamona = bamona %>%
+  select(Latitude = `Lat/Long`, Longitude = Longitude, date =`Observation Date`) %>%
+  mutate(date = as.Date(date, "%m/%d/%Y"))
+
+swallowtail_df = swallowtail_df %>%
+  select(Latitude = latitude, Longitude = longitude, date) %>%
+  mutate(Latitude = as.numeric(Latitude), 
+         Longitude = as.numeric(Longitude))
+
+#binding together
+swallowtail_master = bind_rows("inat_gbif" = swallowtail_df, 
+                               "ebutterfly" = ebutterfly,
+                               "maine" = maine, 
+                               "maritime" = maritime,
+                               "ma_club" = ma_club,
+                               "bamona" = bamona,
+                               .id = "data_source")
+
+#removing duplicates, filtering older data and restricting data to the chunk of the NE we're interested in
+swallowtail_master = swallowtail_master %>%
+  filter(year(date) > 1959) %>%
+  distinct() %>%
+  filter(Latitude < 50 & Latitude > 22) %>%
+  filter(Longitude < -50 & Longitude > -94)
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+library(mapr)
+library(ggmap)
+library(scrubr)
+library(spocc)
+library(readxl)
+library(lubridate)
+library(tidyverse)
+swallowtail_master = read_csv("/Users/KeatonWilson/Documents/Projects/swallowtail_ms/data/swallowtail_data.csv") %>%
+  select(-X1)
+register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
+
+```
+
+```{r, message=FALSE}
+#Let's examine the dataframe of swallowtail records
+glimpse(swallowtail_master)
+
+#So roughly 8000 appropriate records in the timeframe and geographic extent we're interested in
+
+#A quick map of occurence data
+northeast = get_map("New York", zoom = 4)
+ggmap(northeast) +
+  geom_point(data = swallowtail_master, aes(x = longitude, y = latitude), alpha = 0.3)
+```
+
+### Hostplant Data Retrieval  
+
+(Lots of code similar to above not shown - just the dataframe and a quick map for quality control)
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+hostplant_master = read_csv("/Users/KeatonWilson/Documents/Projects/swallowtail_ms/data/hostplant_data.csv") %>%
+  select(-X1)
+```
+```{r}
+glimpse(hostplant_master)
+
+#So only about 1300 records - much less than P. cresphontes
+
+#A quick map of occurence data
+northeast = get_map("New York", zoom = 4)
+ggmap(northeast) +
+  geom_point(data = hostplant_master, aes(x = longitude, y = latitude), alpha = 0.3)
+```
+
+# Modeling  
+
+### Bioclim Data  
+
+The first step is generating the environmental data from the `dismo` package.  
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+
+swallowtail = read_csv("/Users/KeatonWilson/Documents/Projects/swallowtail_ms/data/swallowtail_data.csv")
+swallowtail = swallowtail[,-1] %>%
+  select(longitude, latitude, date, year, time_frame)
+
+#hostplant
+hostplant = read_csv("/Users/KeatonWilson/Documents/Projects/swallowtail_ms/data/hostplant_data.csv") 
+hostplant = hostplant[,-1] %>%
+  select(longitude, latitude, date, year, time_frame)
+```
+```{r, warning=FALSE, message=FALSE}
+#Packages
+library(dismo)
+library(raster)
+
+#bioclim environmental variables
+bioclim.data <- raster::getData(name = "worldclim",
+                                var = "bio",
+                                res = 2.5,
+                                path = "./data/")
+
+# Determine geographic extent of our data
+max_lat_swallowtail <- ceiling(max(swallowtail$latitude))
+min_lat_swallowtail <- floor(min(swallowtail$latitude))
+max_lon_swallowtail <- ceiling(max(swallowtail$longitude))
+min_lon_swallowtail <- floor(min(swallowtail$longitude))
+geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_lat_swallowtail, max_lat_swallowtail))
+
+# Crop bioclim data to geographic extent of swallowtails
+bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
+
+#Plot to make sure bioclim data make sense
+plot(bioclim.data)
+```
+
+## Implementing blockCV  
+
+The first step before modeling is using the `blockCV` package to generate training and testing data for modeling training and evaluation that helps deal with sampling bias and spatial autocorrelation.  
+
+```{r}
+
+#Dividing host plant and swallowtail into respective time periods
+#We essentially will have 4 models (HPT1, HPT2, STT1, STT2)
+
+swallowtail_t1 = swallowtail %>%
+  filter(time_frame == "T1")
+
+swallowtail_t2 = swallowtail %>%
+  filter(time_frame == "T2")
+
+hostplant_t1 = hostplant %>%
+  filter(time_frame == "T1")
+
+hostplant_t2 = hostplant %>%
+  filter(time_frame == "T2")
+
+#Generating background points for each set
+bg_swallowtail_t1 = dismo::randomPoints(bioclim.data, 10000)
+colnames(bg_swallowtail_t1) = c("longitude", "latitude")
+
+bg_swallowtail_t2 = randomPoints(bioclim.data, 10000)
+colnames(bg_swallowtail_t2) = c("longitude", "latitude")
+
+bg_hostplant_t1 = randomPoints(bioclim.data, 10000)
+colnames(bg_hostplant_t1) = c("longitude", "latitude")
+
+bg_hostplant_t2 = randomPoints(bioclim.data, 10000)
+colnames(bg_hostplant_t2) = c("longitude", "latitude")
+
+#Merging background and occurence data for blockCV
+df_st_t1 = data.frame(swallowtail_t1) %>%
+  mutate(pb = 1) %>%
+  dplyr::select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_swallowtail_t1) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  dplyr::select(-pb)
+
+df_st_t2 = data.frame(swallowtail_t2) %>%
+  mutate(pb = 1) %>%
+  dplyr::select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_swallowtail_t2) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  dplyr::select(-pb)
+
+df_hp_t1 = data.frame(hostplant_t1) %>%
+  mutate(pb = 1) %>%
+  dplyr::select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_hostplant_t1) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  dplyr::select(-pb)
+
+df_hp_t2 = data.frame(hostplant_t1) %>%
+  mutate(pb = 1) %>%
+  dplyr::select(pb, longitude, latitude) %>%
+  bind_rows(data.frame(bg_hostplant_t1) %>% 
+              mutate(pb = 0)) %>%
+  mutate(Species = as.integer(pb)) %>%
+  dplyr::select(-pb)
+
+#Making Spatial Points Data frames
+dfspstt1 = SpatialPointsDataFrame(df_st_t1[,c("longitude","latitude")], 
+                               df_st_t1, 
+                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+dfspstt2 = SpatialPointsDataFrame(df_st_t2[,c("longitude","latitude")], 
+                                  df_st_t2, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+dfsphpt1 = SpatialPointsDataFrame(df_hp_t1[,c("longitude","latitude")], 
+                                  df_hp_t1, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+dfsphpt2 = SpatialPointsDataFrame(df_hp_t2[,c("longitude","latitude")], 
+                                  df_hp_t2, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+
+```
+
+### Using blockCV to break data into 5 folds of different spatial blocks.  
+Folds 1-4 used as training data, and fold 5 will be used as out-of-sample test data once models are built.  
+
+```{r cache=TRUE}
+#Loading blockCV
+library(blockCV)
+
+#Spatial blocks for each model. Size is set by eye - need to check with package developer as to why the autosuggest isn't working, but is consistent across models
+
+sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
+                   species = "Species",
+                   rasterLayer = bioclim.data,
+                   theRange = 400000, # size of the blocks
+                   k = 5,
+                   selection = "random",
+                   iteration = 250, # find evenly dispersed folds
+                   biomod2Format = TRUE,
+                   xOffset = 0, # shift the blocks horizontally
+                   yOffset = 0,
+                   progress = T)
+
+sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
+
+sb_hp_t1 <- spatialBlock(speciesData = dfspstt2,
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
+
+sb_hp_t2 <- spatialBlock(speciesData = dfspstt2,
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
+```
+
+### More data preparation before we can build models  
+
+```{r}
+
+#Getting dataframes to feed into the model (dropping NAs)
+data_st_t1 = raster::extract(bioclim.data, df_st_t1[,-3], df = TRUE) %>%
+  bind_cols(df_st_t1) %>%
+  drop_na() %>%
+  dplyr::select(-ID, Species, longitude, latitude, bio1:bio19)
+
+data_st_t2 = raster::extract(bioclim.data, df_st_t2[,-3], df = TRUE) %>%
+  bind_cols(df_st_t2) %>%
+  drop_na() %>%
+  dplyr::select(-ID, Species, longitude, latitude, bio1:bio19)
+
+data_hp_t1 = raster::extract(bioclim.data, df_hp_t1[,-3], df = TRUE) %>%
+  bind_cols(df_hp_t1) %>%
+  drop_na() %>%
+  dplyr::select(-ID, Species, longitude, latitude, bio1:bio19)
+
+data_hp_t2 = raster::extract(bioclim.data, df_hp_t2[,-3], df = TRUE) %>%
+  bind_cols(df_hp_t2) %>%
+  drop_na() %>%
+  dplyr::select(-ID, Species, longitude, latitude, bio1:bio19)
+
+#vectors of presence-background
+pb_st_t1 = data_st_t1$Species
+pb_st_t2 = data_st_t2$Species
+pb_hp_t1 = data_hp_t1$Species
+pb_hp_t2 = data_hp_t2$Species
+
+#folds for each model
+sb_st_t1_folds = sb_st_t1$folds
+sb_st_t2_folds = sb_st_t2$folds
+sb_hp_t1_folds = sb_hp_t1$folds
+sb_hp_t2_folds = sb_hp_t2$folds
+
+#Breaking into training and testing 
+for(k in 1:length(sb_st_t1_folds)){
+  pb_st_t1_train_index <- unlist(sb_st_t1_folds[[k]][1]) # extract the training set indices
+  pb_st_t1_test_index <- unlist(sb_st_t1_folds[[k]][2]) # extract the test set indices
+}
+
+for(k in 1:length(sb_st_t2_folds)){
+  pb_st_t2_train_index <- unlist(sb_st_t2_folds[[k]][1]) # extract the training set indices
+  pb_st_t2_test_index <- unlist(sb_st_t2_folds[[k]][2]) # extract the test set indices
+}
+
+for(k in 1:length(sb_hp_t1_folds)){
+  pb_hp_t1_train_index <- unlist(sb_hp_t1_folds[[k]][1]) # extract the training set indices
+  pb_hp_t1_test_index <- unlist(sb_hp_t1_folds[[k]][2]) # extract the test set indices
+}
+
+for(k in 1:length(sb_hp_t2_folds)){
+  pb_hp_t2_train_index <- unlist(sb_hp_t2_folds[[k]][1]) # extract the training set indices
+  pb_hp_t2_test_index <- unlist(sb_hp_t2_folds[[k]][2]) # extract the test set indices
+}
+
+#training and testing
+pb_st_t1_train_data = data_st_t1[pb_st_t1_train_index,]
+pb_st_t1_test_data = data_st_t1[pb_st_t1_test_index,]
+
+pb_st_t2_train_data = data_st_t2[pb_st_t2_train_index,]
+pb_st_t2_test_data = data_st_t2[pb_st_t2_test_index,]
+
+pb_hp_t1_train_data = data_hp_t1[pb_hp_t1_train_index,]
+pb_hp_t1_test_data = data_hp_t1[pb_hp_t1_test_index,]
+
+pb_hp_t2_train_data = data_hp_t2[pb_hp_t2_train_index,]
+pb_hp_t2_test_data = data_hp_t2[pb_hp_t2_test_index,]
+
+#Quality control
+dim(pb_st_t1_train_data)
+dim(pb_st_t1_test_data) #Looks good - test data is about 20%
+
+#Formatting occurences and background for sending to ENMevaluate
+#Train and test for swallowtail t1
+p_st_t1_train = pb_st_t1_train_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+p_st_t1_test = pb_st_t1_test_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+#train and test for swallowtail t2
+p_st_t2_train = pb_st_t2_train_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+p_st_t2_test = pb_st_t2_test_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+#train and test for hostplant t1
+p_hp_t1_train = pb_hp_t1_train_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+p_hp_t1_test = pb_hp_t2_train_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+#train and test for hostplant t2
+p_hp_t2_train = pb_hp_t2_train_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+p_hp_t2_test = pb_hp_t2_test_data %>%
+  filter(Species == 1) %>%
+  dplyr::select(longitude, latitude)
+
+```
+
+## Modeling using `ENMeval`  
+
+```{r, echo=FALSE}
+if (Sys.getenv("JAVA_HOME")!="")
+  Sys.setenv(JAVA_HOME="")
+library(rJava)
+```
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE}
+# Modeling ----------------------------------------------------------------
+library(enmEVAL)
+
+#Swallowtail t1 
+eval_st_t1 = ENMevaluate(occ = p_st_t1_train, #occurence data
+                         bg.coords = bg_swallowtail_t1,  #background points
+                         env = bioclim.data, #environmental data
+                         method = 'randomkfold', #Crossvalidation
+                         kfolds = 5, #number of folds
+                         algorithm = 'maxent.jar') 
+
+#Swallowtail t2
+eval_st_t2 = ENMevaluate(occ = p_st_t2_train, 
+                         bg.coords = bg_swallowtail_t2, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
+
+#Hostplant t1
+eval_hp_t1 = ENMevaluate(occ = p_hp_t1_train, 
+                         bg.coords = bg_hostplant_t1, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
+
+#Hostplant t2
+eval_hp_t2 = ENMevaluate(occ = p_hp_t2_train, 
+                         bg.coords = bg_hostplant_t2, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
+
+#saving model objects
+saveRDS(eval_st_t1, "./models/eval_st_t1.rds")
+saveRDS(eval_st_t2, "./models/eval_st_t2.rds")
+saveRDS(eval_hp_t1, "./models/eval_hp_t1.rds")
+saveRDS(eval_hp_t2, "./models/eval_hp_t2.rds")
+```
+
+
+```{r, echo=FALSE}
+eval_st_t1 = readRDS("./models/eval_st_t1.rds")
+eval_st_t2 = readRDS("./models/eval_st_t2.rds")
+eval_hp_t1 = readRDS("./models/eval_hp_t1.rds")
+eval_hp_t2 = readRDS("./models/eval_hp_t2.rds")
+```
+
+### Model tuning and evaluation  
+
+Tuning is happening during 5-fold CV - the ENMevaluate function's default is to vary feature class combinations (Linear, quadratic, product, threshold and hinge (along with combinations)) and regularization multipliers (0.5-2 in 0.5-sized intervals).  We can view the effects of this tuning below.  
+
+```{r}
+library(ENMeval)
+
+#Function for generating evaluation plots
+eval_plots = function(eval_object = NULL) {
+  par(mfrow=c(2,3))
+  eval.plot(eval_object@results)
+  eval.plot(eval_object@results, 'avg.test.AUC', legend = F)
+  eval.plot(eval_object@results, 'avg.diff.AUC', legend = F)
+  eval.plot(eval_object@results, 'avg.test.or10pct', legend = F)
+  eval.plot(eval_object@results, 'avg.test.orMTP', legend = F)
+  plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_object@results$features, pch=21, cex= eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
+  legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
+  mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
+}
+
+#Evaluation plots
+eval_plots(eval_st_t1)
+eval_plots(eval_st_t2)
+eval_plots(eval_hp_t1)
+eval_plots(eval_hp_t2)
+```
+
+In the figures above, different evaluation metrics are plotted on the y-axis of each panel, with different feature combinations plotted in differenc colors, and regularization multipliers on the x-axis. Evaluation metric definitions:  
+1. **delta.AICc** - difference between an individual model's AIC score and the lowest score of all the models.  
+2. **avg.test.auc** - average area under the curve of the ROC plot for test data.  
+3. **avg.diff.AUC** - difference between training and testing AAUC, averaged across 5 bins. High avg.diff.auc = models overfit on training data  
+4. **avg.test.or10oct** - threshold dependent omission rates (quanitfy overfitting) - the value that excludes 10% of training locailities with the lowest predicted suitability.  
+5. **avg.test.orMTP** - threshold dependent omission rate. The training locality with the lowest value.  
+
+Currently, (as shown below), I'm using the highest AUC on test data to determine which set of tuning parameters to use. AUC is straightforward, but it looks like the best models based on AUC may also have some degree of overfitting (avg.diff.AUC). Perhaps there is a better method. Easy to swap this out down the road in the code below. 
+
+## Model Evaluation on out-of-sample test data generated from blockCV  
+
+```{r}
+#Picking the best model based on highest AUC for each set
+#Pulling out indices of the "best" model based on AUC scores - if there are two models that are equal, it pulls the first.
+best_index_st_t1 = as.numeric(row.names(eval_st_t1@results[which(eval_st_t1@results$avg.test.AUC== max(eval_st_t1@results$avg.test.AUC)),]))[1]
+
+best_index_st_t2 = as.numeric(row.names(eval_st_t2@results[which(eval_st_t2@results$avg.test.AUC== max(eval_st_t2@results$avg.test.AUC)),]))[1]
+
+best_index_hp_t1 = as.numeric(row.names(eval_hp_t1@results[which(eval_hp_t1@results$avg.test.AUC== max(eval_hp_t1@results$avg.test.AUC)),]))[1]
+
+best_index_hp_t2 = as.numeric(row.names(eval_hp_t2@results[which(eval_hp_t2@results$avg.test.AUC== max(eval_hp_t2@results$avg.test.AUC)),]))[1]
+
+#Using indices generated above to pull out the model objects
+best_st_t1 = eval_st_t1@models[[best_index_st_t1]]
+best_st_t2 = eval_st_t2@models[[best_index_st_t2]]
+best_hp_t1 = eval_hp_t1@models[[best_index_hp_t1]]
+best_hp_t2 = eval_hp_t2@models[[best_index_hp_t2]]
+
+#Evaluate on test data
+ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bioclim.data)
+ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bioclim.data)
+ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
+ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
+
+ev_st_t1
+ev_st_t2
+ev_hp_t1
+ev_hp_t2
+```
+
+You can see from AUC scores above, the models are doing a good job of classification (i.e. close to 1) on test-data generated from blockCV. 
+### Pulling out 'best' feature and regularization parameters and running models on the full data set (training+test) for figures and analyses.  
+
+```{r, eval=FALSE} 
+
+#Sample code
+
+#Swallowtail T1
+#Pulling out features
+auc_mod = eval_st_t1@results[best_index_st_t1,]
+FC_best = as.character(auc_mod$features[1])
+rm_best = auc_mod$rm
+
+#setting maxent arguments
+maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
+
+#Full Swallowtail T1 Model
+mx_best_st_t1 = maxent(bioclim.data, as.matrix(swallowtail_t1[,1:2]), args = maxent.args[[1]])
+
+#save model
+saveRDS(mx_best_st_t1, "./models/full_best_st_t1.rds")
+```
+
+# Figures and Biological Results 
+
+First, loading in a bunch of required packages (some may be doubled-up from before) and data, including full model objects.  
+
+```{r, error=FALSE, message=FALSE}
+
+#packages and libraries
+library(tidyverse)
+library(dismo)
+library(lubridate)
+library(rgdal)
+library(sp)
+library(raster)
+library(maptools)
+library(ggmap)
+library(viridis)
+library(ggthemes)
+library(rgeos)
+library(maps)
+library(ggpubr)
+library(blockCV)
+library(ENMeval)
+
+#Loading in raw occurence data
+swallowtail = read_csv("./data/swallowtail_data.csv")
+swallowtail = swallowtail[,-1] %>%
+  dplyr::select(longitude, latitude, date, year, time_frame)
+
+#hostplant
+hostplant = read_csv("./data/hostplant_data.csv")
+hostplant = hostplant[,-1]
+
+#bioclim environmental variables
+bioclim.data <- raster::getData(name = "worldclim",
+                                var = "bio",
+                                res = 2.5,
+                                path = "./data/")
+
+# Determine geographic extent of our data
+max_lat_swallowtail <- ceiling(max(swallowtail$latitude))
+min_lat_swallowtail <- floor(min(swallowtail$latitude))
+max_lon_swallowtail <- ceiling(max(swallowtail$longitude))
+min_lon_swallowtail <- floor(min(swallowtail$longitude))
+geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_lat_swallowtail, max_lat_swallowtail))
+
+# Crop bioclim data to geographic extent of swallowtails
+bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
+
+#Loading in model objects
+mx_best_hp_t2 = readRDS("./models/full_best_hp_t2.rds")
+mx_best_hp_t1 = readRDS("./models/full_best_hp_t1.rds")
+mx_best_st_t1 = readRDS("./models/full_best_st_t1.rds")
+mx_best_st_t2 = readRDS("./models/full_best_st_t2.rds")
+```
+
+### *P. cresphontes* sdm maps  
+
+Next we'll use the full models to make predictions and plot maps of raw maxent output (butterflies first, hostplants 2nd)  
+
+```{r, cache=TRUE, fig.width = 9}
+#Swallowtail predictions and maps
+
+#Predictions from full model (Swallowtail T1)
+predict_presence_st_t1 = dismo::predict(object = mx_best_st_t1, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_st_t1 <- as(predict_presence_st_t1, "SpatialPixelsDataFrame")
+pred_sp_df_st_t1 <- as.data.frame(pred_sp_st_t1)
+colnames(pred_sp_df_st_t1) <- c("value", "x", "y")
+
+#Predictions from full model (Swallowtail T2)
+predict_presence_st_t2 = dismo::predict(object = mx_best_st_t2, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_st_t2 <- as(predict_presence_st_t2, "SpatialPixelsDataFrame")
+pred_sp_df_st_t2 <- as.data.frame(pred_sp_st_t2)
+colnames(pred_sp_df_st_t2) <- c("value", "x", "y")
+
+#Pulling in polygons for states and provinces
+#Getting map data
+usa = getData(country = 'USA', level = 1)
+
+#extract states (need to uppercase everything)
+to_remove = c("Alaska", "Hawaii", "North Dakota", "South Dakota", "Montana", 
+              "Wyoming", "Idaho", "Washington", "Oregon", "Nevada", "California", 
+              "Arizona", "Utah", "New Mexico", "Colorado", "Nebraska", "Texas", 
+              "Oklahoma", "Kansas")
+
+#filtering
+mapping = usa[-match(toupper(to_remove), toupper(usa$NAME_1)),]
+
+#simplying polygons
+simple_map_US = gSimplify(mapping, tol = 0.01, topologyPreserve = TRUE)
+
+#Pulling Canada Province data
+can = getData(country = 'CAN', level = 1)
+province = c("Ontario")
+can_mapping = can[match(toupper(c("Ontario", "Québec")), toupper(can$NAME_1)),]
+simple_map_can = gSimplify(can_mapping, tol = 0.01, topologyPreserve = TRUE)
+
+#Plotting - T1 First
+g1 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_st_t1, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  scale_fill_viridis() +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map() +
+  ggtitle("1960-1999")
+
+#Plotting Swallowtail T2
+g2 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_st_t2, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  scale_fill_viridis() +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map() +
+  ggtitle("2000-2019")
+
+maxent_raw_st = ggarrange(g1, g2, common.legend = TRUE)
+maxent_raw_st
+```
+
+### Hostplant predictions and plots 
+
+```{r, cache=TRUE, fig.width = 9}
+#Predictions from full model (Hostplant T1)
+predict_presence_hp_t1 = dismo::predict(object = mx_best_hp_t1, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_t1 <- as(predict_presence_hp_t1, "SpatialPixelsDataFrame")
+pred_sp_df_hp_t1 <- as.data.frame(pred_sp_hp_t1)
+colnames(pred_sp_df_hp_t1) <- c("value", "x", "y")
+
+#Predictions from full model (hostplant T2)
+predict_presence_hp_t2 = dismo::predict(object = mx_best_hp_t2, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_t2 <- as(predict_presence_hp_t2, "SpatialPixelsDataFrame")
+pred_sp_df_hp_t2 <- as.data.frame(pred_sp_hp_t2)
+colnames(pred_sp_df_hp_t2) <- c("value", "x", "y")
+
+#Plotting 
+g3 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_hp_t1, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  scale_fill_viridis() +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  ggtitle("1960-1999") +
+  theme_map()
+  
+#Plotting hostplant T2
+g4 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_hp_t2, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  scale_fill_viridis() +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  ggtitle("2000-2019") +
+  theme_map()
+  
+maxent_raw_hp = ggarrange(g3, g4, common.legend = TRUE)
+maxent_raw_hp
+```
+
+### Threshold Maps  
+Here, we calculate threshold values for each model and map predicted binary outcomes (present or absent) as desnity plots to view changes in latitude between the two time periods and threshold maps.  
+
+```{r}
+ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bioclim.data)
+ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bioclim.data)
+ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
+ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
+
+#finding the threshold for presence/absence for each model
+## Different ways to calculate threshold, here I use the threshold at which the sum of the true positive rate and true negative rate is highest
+st_t1_threshold = threshold(ev_st_t1, 'spec_sens') 
+st_t2_threshold = threshold(ev_st_t2, 'spec_sens')
+hp_t1_threshold = threshold(ev_hp_t1, 'spec_sens')
+hp_t2_threshold = threshold(ev_hp_t2, 'spec_sens')
+
+#building filtered dataframes of predictions
+st_t1_threshold = pred_sp_df_st_t1 %>%
+  filter(value > st_t1_threshold)
+
+st_t2_threshold = pred_sp_df_st_t2 %>%
+  filter(value > st_t2_threshold)
+
+hp_t1_threshold = pred_sp_df_hp_t1 %>%
+  filter(value > hp_t1_threshold)
+
+hp_t2_threshold = pred_sp_df_hp_t2 %>%
+  filter(value > hp_t2_threshold)
+
+#binding
+threshold_df_st = bind_rows("t1" = st_t1_threshold, "t2" = st_t2_threshold, .id = "timeframe")
+threshold_df_hp = bind_rows("t1" = hp_t1_threshold, "t2" = hp_t2_threshold, .id = "timeframe")
+
+#plotting st
+g5 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
+  geom_density(alpha = 0.8) +
+  theme_classic() +
+  labs(x = "Latitude", y = "Kernel Density Estimate") +
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
+  ggtitle("Swallowtail")
+
+#plotting hp
+g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
+  geom_density(alpha = 0.8) +
+  theme_classic() +
+  labs(x = "Latitude", y = "Kernel Density Estimate") +
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
+  ggtitle("Hostplant")
+
+histograms_plot = ggarrange(g5, g6, common.legend = TRUE)
+histograms_plot
+```
+
+### Threshold maps with occurence data  
+```{r, cache=TRUE, fig.width = 9}
+#Swallowtail T1
+g7 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "grey10") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
+  geom_tile(data = st_t1_threshold, aes(x=x, y=y), fill = "lightgrey") + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey75", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_point(data = swallowtail_t1, aes(x = longitude, y = latitude), alpha = 0.5, color = "yellow", shape = 3) +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map() +
+  ggtitle("1960-1999")
+
+#T2
+g8 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "grey10") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
+  geom_tile(data=st_t2_threshold, aes(x=x, y=y), fill = "lightgrey") + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey75", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_point(data = swallowtail_t2, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow", shape = 3) +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map() +
+  ggtitle("2000-2019")
+
+maxent_th_st = ggarrange(g7, g8, common.legend = TRUE)
+maxent_th_st
+```
+### Hostplant Threshold Maps  
+
+```{r, cache=TRUE, fig.width = 9}
+#Hostplant T1
+g9 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "grey10") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
+  geom_tile(data = hp_t1_threshold, aes(x=x, y=y), fill = "lightgrey") + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey75", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_point(data = hostplant_t1, aes(x = longitude, y = latitude), alpha = 0.5, color = "yellow", shape = 3) +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map() +
+  ggtitle("1960-1999")
+
+#T2
+g10 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "grey10") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
+  geom_tile(data=hp_t2_threshold, aes(x=x, y=y), fill = "lightgrey") + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey75", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_point(data = hostplant_t2, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow", shape = 3) +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm")) +
+  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme_map() +
+  ggtitle("2000-2019")
+
+maxent_th_hp = ggarrange(g9, g10, common.legend = TRUE)
+maxent_th_hp
+```
+### Inset plot from the original paper (Max latitude ~ time)  
+
+```{r}
+swallowtail_inset = swallowtail %>%
+  group_by(year) %>%
+  summarize(max_lat = max(latitude), 
+            n = n()) %>%
+  filter(max_lat > 35) #Filtering - there are some weird years that only have a few records at really low lattitudes.
+
+  g11 = ggplot(data = swallowtail_inset, aes(x = year, y = max_lat, size = n)) +
+  geom_point(alpha = 0.8) +
+  geom_smooth(data = swallowtail_inset %>%
+                filter(year < 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+  geom_smooth(data = swallowtail_inset %>%
+                filter(year >= 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+  theme_classic() +
+  scale_size_continuous(name = "Number of Observations") +
+  labs(x = "Year", y = "Maximum Latitude (º)")
+  
+  g11
+```

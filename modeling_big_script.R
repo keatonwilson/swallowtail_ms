@@ -104,8 +104,8 @@ df_hp_t2 = data.frame(hostplant_t1) %>%
 
 #Spatialpoints
 dfspstt1 = SpatialPointsDataFrame(df_st_t1[,c("longitude","latitude")], 
-                               df_st_t1, 
-                               proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
+                                  df_st_t1, 
+                                  proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
 
 dfspstt2 = SpatialPointsDataFrame(df_st_t2[,c("longitude","latitude")], 
                                   df_st_t2, 
@@ -120,16 +120,16 @@ dfsphpt2 = SpatialPointsDataFrame(df_hp_t2[,c("longitude","latitude")],
 
 # blockCV Train-Test Split for all 4 models ------------------------------------------------
 sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
-                   species = "Species",
-                   rasterLayer = bioclim.data,
-                   theRange = 400000, # size of the blocks
-                   k = 5,
-                   selection = "random",
-                   iteration = 250, # find evenly dispersed folds
-                   biomod2Format = TRUE,
-                   xOffset = 0, # shift the blocks horizontally
-                   yOffset = 0,
-                   progress = T)
+                         species = "Species",
+                         rasterLayer = bioclim.data,
+                         theRange = 400000, # size of the blocks
+                         k = 5,
+                         selection = "random",
+                         iteration = 250, # find evenly dispersed folds
+                         biomod2Format = TRUE,
+                         xOffset = 0, # shift the blocks horizontally
+                         yOffset = 0,
+                         progress = T)
 
 sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
                          species = "Species",
@@ -284,35 +284,35 @@ library(rJava)
 
 #Swallowtail t1 
 eval_st_t1 = ENMevaluate(occ = p_st_t1_train, 
-                     bg.coords = bg_swallowtail_t1, 
-                     env = bioclim.data, 
-                     method = 'randomkfold', 
-                     kfolds = 5, 
-                     algorithm = 'maxent.jar')
+                         bg.coords = bg_swallowtail_t1, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
 
 #Swallowtail t2
 eval_st_t2 = ENMevaluate(occ = p_st_t2_train, 
-                     bg.coords = bg_swallowtail_t2, 
-                     env = bioclim.data, 
-                     method = 'randomkfold', 
-                     kfolds = 5, 
-                     algorithm = 'maxent.jar')
+                         bg.coords = bg_swallowtail_t2, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
 
 #Hostplant t1
 eval_hp_t1 = ENMevaluate(occ = p_hp_t1_train, 
-                     bg.coords = bg_hostplant_t1, 
-                     env = bioclim.data, 
-                     method = 'randomkfold', 
-                     kfolds = 5, 
-                     algorithm = 'maxent.jar')
+                         bg.coords = bg_hostplant_t1, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
 
 #Hostplant t2
 eval_hp_t2 = ENMevaluate(occ = p_hp_t2_train, 
-                     bg.coords = bg_hostplant_t2, 
-                     env = bioclim.data, 
-                     method = 'randomkfold', 
-                     kfolds = 5, 
-                     algorithm = 'maxent.jar')
+                         bg.coords = bg_hostplant_t2, 
+                         env = bioclim.data, 
+                         method = 'randomkfold', 
+                         kfolds = 5, 
+                         algorithm = 'maxent.jar')
 
 #saving model objects
 saveRDS(eval_st_t1, "./models/eval_st_t1.rds")
@@ -332,15 +332,15 @@ eval_hp_t1 = readRDS("./models/eval_hp_t1.rds")
 eval_hp_t2 = readRDS("./models/eval_hp_t2.rds")
 
 eval_plots = function(eval_object = NULL) {
-par(mfrow=c(2,3))
-eval.plot(eval_object@results)
-eval.plot(eval_object@results, 'avg.test.AUC', legend = F)
-eval.plot(eval_object@results, 'avg.diff.AUC', legend = F)
-eval.plot(eval_object@results, 'avg.test.or10pct', legend = F)
-eval.plot(eval_object@results, 'avg.test.orMTP', legend = F)
-plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_object@results$features, pch=21, cex= eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
-legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
-mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
+  par(mfrow=c(2,3))
+  eval.plot(eval_object@results)
+  eval.plot(eval_object@results, 'avg.test.AUC', legend = F)
+  eval.plot(eval_object@results, 'avg.diff.AUC', legend = F)
+  eval.plot(eval_object@results, 'avg.test.or10pct', legend = F)
+  eval.plot(eval_object@results, 'avg.test.orMTP', legend = F)
+  plot(eval_object@results$avg.test.AUC, eval_object@results$delta.AICc, bg=eval_object@results$features, pch=21, cex= eval_object@results$rm/2, xlab = "avg.test.AUC", ylab = 'delta.AICc', cex.lab = 1.5)
+  legend("topright", legend=unique(eval_object@results$features), pt.bg=eval_object@results$features, pch=21)
+  mtext("Circle size proportional to regularization multiplier value", cex = 0.6)
 }
 
 #Evaluation plots
@@ -435,5 +435,3 @@ mx_best_hp_t2 = maxent(bioclim.data, as.matrix(hostplant_t2[,1:2]), args = maxen
 
 #save model
 saveRDS(mx_best_hp_t2, "./models/full_best_hp_t2.rds")
-
-
