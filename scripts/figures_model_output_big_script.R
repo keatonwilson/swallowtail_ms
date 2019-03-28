@@ -95,7 +95,7 @@ g1 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
-  theme_map() +
+  theme_nothing(legend = TRUE) +
   ggtitle("1960-1999")
 
 #Predictions from full model (Swallowtail T2)
@@ -118,11 +118,13 @@ g2 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
-  theme_map() +
+  theme_nothing(legend = TRUE) +
   ggtitle("2000-2019")
 
 maxent_raw_st = ggarrange(g1, g2, common.legend = TRUE)
 maxent_raw_st
+
+ggsave(plot = maxent_raw_st, filename = "./output/swallowtail_maxent_raw.png", device = "png")
 
 #Predictions from full model (Hostplant T1)
 predict_presence_hp_t1 = dismo::predict(object = mx_best_hp_t1, x = bioclim.data, ext = geographic.extent)
@@ -146,7 +148,7 @@ g3 = ggplot() +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   ggtitle("1960-1999") +
-  theme_map()
+  theme_nothing(legend = TRUE)
   
 
 #Predictions from full model (Swallowtail T2)
@@ -170,10 +172,12 @@ g4 = ggplot() +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   ggtitle("2000-2019") +
-  theme_map()
-  
+  theme_nothing(legend = TRUE)
+
 maxent_raw_hp = ggarrange(g3, g4, common.legend = TRUE)
 maxent_raw_hp
+
+ggsave(plot = maxent_raw_hp, filename = "./output/hostplant_maxent_raw.png", device = "png")
 
 # Threshold Maps and Density Figures --------------------------------------
 
@@ -224,8 +228,10 @@ g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
   scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
   ggtitle("Hostplant")
 
-histograms_plot = ggarrange(g5, g6, common.legend = TRUE)
+histograms_plot = ggarrange(g5, g6, common.legend = TRUE, nrow = 2)
 histograms_plot
+
+ggsave(plot = histograms_plot, filename = "./output/swallowtail_density_plot.png", device = "png")
 
 #threshold maps
 #Swallowtail T1
@@ -241,7 +247,7 @@ g7 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
-  theme_map() +
+  theme_nothing(legend = TRUE) +
   ggtitle("1960-1999")
 
 #T2
@@ -257,8 +263,92 @@ g8 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
   coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
-  theme_map() +
+  theme_nothing(legend = TRUE) +
   ggtitle("2000-2019")
 
 maxent_th_st = ggarrange(g7, g8, common.legend = TRUE)
 maxent_th_st
+
+ggsave(plot = maxent_th_st, filename = "./output/swallowtail_treshold_occurence.png", device = "png")
+#Environmental Variable Importance
+
+#Swallowtail time-frame 1
+df = var.importance(mx_best_st_t1)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_1 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Swallowtail T1") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Swallowtail time-frame 2
+df = var.importance(mx_best_st_t2)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_2 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Swallowtail T2") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant time-frame 1
+df = var.importance(mx_best_hp_t1)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_3 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Hostplant T1") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant time-frame 2
+df = var.importance(mx_best_hp_t2)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_4 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Hostplant T2") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+env_plot = ggarrange(env_plot_1, env_plot_2, env_plot_3, env_plot_4, common.legend = TRUE)
+env_plot
+
+ggsave(plot = env_plot, filename = "./output/environmental_contribution.png", device = "png")
+
+#Maximum latitude by year figure
+swallowtail_inset = swallowtail %>%
+  group_by(year) %>%
+  summarize(max_lat = max(latitude), 
+            n = n()) %>%
+  filter(max_lat > 35) #Filtering - there are some weird years that only have a few records at really low lattitudes.
+
+g11 = ggplot(data = swallowtail_inset, aes(x = year, y = max_lat, size = n)) +
+  geom_point(alpha = 0.8) +
+  # geom_smooth(data = swallowtail_inset %>%
+  #               filter(year < 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+  # geom_smooth(data = swallowtail_inset %>%
+  #               filter(year >= 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+    geom_smooth(data = swallowtail_inset, show.legend = FALSE) +
+  theme_classic() +
+  scale_size_continuous(name = "Number of Observations") +
+  labs(x = "Year", y = "Maximum Latitude (º)") +
+  geom_vline(xintercept = 2000, lty = 2) +
+  annotate(geom = "text", label = "Timeframe Break Point", x = 1994, y = 47.5)
+
+g11
+
+ggsave(plot = g11, filename = "./output/max_swallowtail_lat_by_year.png", device = "png")

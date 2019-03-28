@@ -199,7 +199,7 @@ plot(bioclim.data)
 
 ## Implementing blockCV  
 
-The first step before modeling is using the `blockCV` package to generate training and testing data for modeling training and evaluation that helps deal with sampling bias and spatial autocorrelation.  
+The first step before modeling is using the `blockCV` package to generate training and test data for modeling training and evaluation that helps deal with sampling bias and spatial autocorrelation.  
 
 ```{r}
 
@@ -289,7 +289,7 @@ Folds 1-4 used as training data, and fold 5 will be used as out-of-sample test d
 #Loading blockCV
 library(blockCV)
 
-#Spatial blocks for each model. Size is set by eye - need to check with package developer as to why the autosuggest isn't working, but is consistent across models
+#Spatial blocks for each model. Size is set by eye - need to check with package developer as to why the autosuggest isn't working. Regardless, block size is consistent across models below.
 
 sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
                    species = "Species",
@@ -515,7 +515,7 @@ eval_hp_t2 = readRDS("./models/eval_hp_t2.rds")
 
 ### Model tuning and evaluation  
 
-Tuning is happening during 5-fold CV - the ENMevaluate function's default is to vary feature class combinations (Linear, quadratic, product, threshold and hinge (along with combinations)) and regularization multipliers (0.5-2 in 0.5-sized intervals).  We can view the effects of this tuning below.  
+Tuning is happening during 5-fold CV that we're running on the training data generated from blockCV - the ENMevaluate function's default is to vary feature class combinations (linear, quadratic, product, threshold and hinge (along with combinations)) and regularization multipliers (0.5-4 in 0.5-sized intervals). This results in 48 models per run of ENMevaluate (192 models in total for each time period across both hostplants and butterfly). We can view the effects of this tuning below. At some point I'll convert this function to use ggplot for better aesthetics, but it works for now. 
 
 ```{r}
 library(ENMeval)
@@ -534,9 +534,16 @@ eval_plots = function(eval_object = NULL) {
 }
 
 #Evaluation plots
+#Swallowtail Model (1960-1999)
 eval_plots(eval_st_t1)
+
+#Swallowtail Model (2000-2019)
 eval_plots(eval_st_t2)
+
+#Hostplant Model (1960-1999)
 eval_plots(eval_hp_t1)
+
+#Hostplant Model (2000-2019)
 eval_plots(eval_hp_t2)
 ```
 
@@ -574,13 +581,21 @@ ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x 
 ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
 ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
 
+#Swallowtail 1959-1999
 ev_st_t1
+
+#Swallowtail 2000-2019
 ev_st_t2
+
+#Hostplant 1959-1999
 ev_hp_t1
+
+#Hostplant 2000-2019
 ev_hp_t2
 ```
 
-You can see from AUC scores above, the models are doing a good job of classification (i.e. close to 1) on test-data generated from blockCV. 
+You can see from AUC scores above, the models are doing a good job of classification (i.e. close to 1) on test-data generated from blockCV.  
+
 ### Pulling out 'best' feature and regularization parameters and running models on the full data set (training+test) for figures and analyses.  
 
 ```{r, eval=FALSE} 
@@ -843,7 +858,8 @@ histograms_plot = ggarrange(g5, g6, common.legend = TRUE)
 histograms_plot
 ```
 
-### Threshold maps with occurence data  
+## Threshold maps with occurence data  
+### Swallowtail  
 ```{r, cache=TRUE, fig.width = 9}
 #Swallowtail T1
 g7 = ggplot() +  
@@ -880,7 +896,8 @@ g8 = ggplot() +
 maxent_th_st = ggarrange(g7, g8, common.legend = TRUE)
 maxent_th_st
 ```
-### Hostplant Threshold Maps  
+
+### Hostplant  
 
 ```{r, cache=TRUE, fig.width = 9}
 #Hostplant T1
@@ -918,7 +935,8 @@ g10 = ggplot() +
 maxent_th_hp = ggarrange(g9, g10, common.legend = TRUE)
 maxent_th_hp
 ```
-### Inset plot from the original paper (Max latitude ~ time)  
+
+## Inset plot from the original paper (Max latitude ~ time)  
 
 ```{r}
 swallowtail_inset = swallowtail %>%
@@ -927,15 +945,81 @@ swallowtail_inset = swallowtail %>%
             n = n()) %>%
   filter(max_lat > 35) #Filtering - there are some weird years that only have a few records at really low lattitudes.
 
-  g11 = ggplot(data = swallowtail_inset, aes(x = year, y = max_lat, size = n)) +
+g11 = ggplot(data = swallowtail_inset, aes(x = year, y = max_lat, size = n)) +
   geom_point(alpha = 0.8) +
-  geom_smooth(data = swallowtail_inset %>%
-                filter(year < 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
-  geom_smooth(data = swallowtail_inset %>%
-                filter(year >= 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+  # geom_smooth(data = swallowtail_inset %>%
+  #               filter(year < 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+  # geom_smooth(data = swallowtail_inset %>%
+  #               filter(year >= 2000), aes(x = year, y = max_lat), method = "lm", show.legend = FALSE) +
+    geom_smooth(data = swallowtail_inset, show.legend = FALSE) +
   theme_classic() +
   scale_size_continuous(name = "Number of Observations") +
-  labs(x = "Year", y = "Maximum Latitude (º)")
-  
-  g11
+  labs(x = "Year", y = "Maximum Latitude (º)") +
+  geom_vline(xintercept = 2000, lty = 2) +
+  annotate(geom = "text", label = "Timeframe Break Point", x = 1994, y = 47.5)
+
+g11
 ```
+
+## Environmental Variable importance for each model  
+
+```{r}
+#Swallowtail time-frame 1
+#Environmental Variable Importance
+
+#Swallowtail time-frame 1
+df = var.importance(mx_best_st_t1)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_1 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Swallowtail T1") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Swallowtail time-frame 2
+df = var.importance(mx_best_st_t2)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_2 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Swallowtail T2") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant time-frame 1
+df = var.importance(mx_best_hp_t1)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_3 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Hostplant T1") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant time-frame 2
+df = var.importance(mx_best_hp_t2)
+df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
+                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
+                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+env_plot_4 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Hostplant T2") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggarrange(env_plot_1, env_plot_2, env_plot_3, env_plot_4, common.legend = TRUE)
+
+```
+
