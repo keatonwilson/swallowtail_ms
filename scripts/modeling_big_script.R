@@ -143,7 +143,7 @@ sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
                          yOffset = 0,
                          progress = T)
 
-sb_hp_t1 <- spatialBlock(speciesData = dfspstt2,
+sb_hp_t1 <- spatialBlock(speciesData = dfsphpt1,
                          species = "Species",
                          rasterLayer = bioclim.data,
                          theRange = 400000, # size of the blocks
@@ -155,7 +155,7 @@ sb_hp_t1 <- spatialBlock(speciesData = dfspstt2,
                          yOffset = 0,
                          progress = T)
 
-sb_hp_t2 <- spatialBlock(speciesData = dfspstt2,
+sb_hp_t2 <- spatialBlock(speciesData = dfsphpt2,
                          species = "Species",
                          rasterLayer = bioclim.data,
                          theRange = 400000, # size of the blocks

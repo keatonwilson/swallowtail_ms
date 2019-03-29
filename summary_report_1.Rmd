@@ -14,9 +14,9 @@ knitr::opts_chunk$set(echo = TRUE)
 This report outlines work done so far on adapting and building on previous analyses to examine changes in the range of the Giant Swallowtail (*Papilio cresphontes*) over the last ~60 years, with an emphasis on a northern range shift since 2000. The project leverages citizen-science occurrence data from inat, gbif, ebutterfly and a variety of other small datasets from organizations in the northeast. The OSF project can be found [here](https://osf.io/84kxd/). This report is an overview, and there is some code ommitted - the full project can be found on [github](www.github.com/keatonwilson/swallowtail_ms).
 
 Specifically, this report details updated analyses that can be broken into three main sections:  
-1. Data Retrieval and Cleaning  
-2. SDM Model Tuning and Evaluation  
-3. Figure Generation and Preliminary Results  
+1. **Data Retrieval and Cleaning**  
+2. **SDM Model Tuning and Evaluation** 
+3. **Figure Generation and Preliminary Results** 
 
 # Data Retrieval and Cleaning  
 
@@ -315,7 +315,7 @@ sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
                          yOffset = 0,
                          progress = T)
 
-sb_hp_t1 <- spatialBlock(speciesData = dfspstt2,
+sb_hp_t1 <- spatialBlock(speciesData = dfsphpt2,
                          species = "Species",
                          rasterLayer = bioclim.data,
                          theRange = 400000, # size of the blocks
@@ -327,7 +327,7 @@ sb_hp_t1 <- spatialBlock(speciesData = dfspstt2,
                          yOffset = 0,
                          progress = T)
 
-sb_hp_t2 <- spatialBlock(speciesData = dfspstt2,
+sb_hp_t2 <- spatialBlock(speciesData = dfsphpt2,
                          species = "Species",
                          rasterLayer = bioclim.data,
                          theRange = 400000, # size of the blocks
