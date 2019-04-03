@@ -13,6 +13,8 @@ library(ENMeval)
 
 
 # Data Preparation --------------------------------------------------------
+#setting seed for reproducibility down the line
+set.seed(42)
 
 #importing swallowtail, hostplant and environmental data
 #butterfly

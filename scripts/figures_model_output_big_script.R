@@ -79,8 +79,31 @@ simple_map_US = gSimplify(mapping, tol = 0.01, topologyPreserve = TRUE)
 #Pulling Canada Province data
 can = getData(country = 'CAN', level = 1)
 province = c("Ontario")
-can_mapping = can[match(toupper(c("Ontario", "Québec")), toupper(can$NAME_1)),]
+can_mapping = can[match(toupper(c("Ontario", "Québec", "New Brunswick", "Prince Edward Island", "Nova Scotia")), toupper(can$NAME_1)),]
 simple_map_can = gSimplify(can_mapping, tol = 0.01, topologyPreserve = TRUE)
+
+#Great lakes issues
+lakes <- rgdal::readOGR("./data/10m_physical/ne_10m_lakes.shp")
+lakes = lakes[lakes$scalerank==0,]
+lakes = crop(lakes, geographic.extent)
+
+
+#Testing geographic polygons
+ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25, fill = NA)
+
+#Predictions from full model (Swallowtail T2)
+predict_presence_st_t2 = dismo::predict(object = mx_best_st_t2, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_st_t2 <- as(predict_presence_st_t2, "SpatialPixelsDataFrame")
+pred_sp_df_st_t2 <- as.data.frame(pred_sp_st_t2)
+colnames(pred_sp_df_st_t2) <- c("value", "x", "y")
 
 #Plotting - T1 First
 g1 = ggplot() +  
@@ -91,19 +114,16 @@ g1 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
-  scale_fill_viridis() +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
-  theme(legend.key.width=unit(2, "cm")) +
-  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  #coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_nothing(legend = TRUE) +
-  ggtitle("1960-1999")
+  ggtitle("1960 - 1999") +
+  coord_quickmap()
 
-#Predictions from full model (Swallowtail T2)
-predict_presence_st_t2 = dismo::predict(object = mx_best_st_t2, x = bioclim.data, ext = geographic.extent)
-
-pred_sp_st_t2 <- as(predict_presence_st_t2, "SpatialPixelsDataFrame")
-pred_sp_df_st_t2 <- as.data.frame(pred_sp_st_t2)
-colnames(pred_sp_df_st_t2) <- c("value", "x", "y")
 
 #Plotting Swallowtail T2
 g2 = ggplot() +  
@@ -114,12 +134,14 @@ g2 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
-  scale_fill_viridis() +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
-  theme(legend.key.width=unit(2, "cm")) +
-  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
   theme_nothing(legend = TRUE) +
-  ggtitle("2000-2019")
+  ggtitle("2000 - 2019") +
+  coord_quickmap()
 
 maxent_raw_st = ggarrange(g1, g2, common.legend = TRUE)
 maxent_raw_st
@@ -133,6 +155,12 @@ pred_sp_hp_t1 <- as(predict_presence_hp_t1, "SpatialPixelsDataFrame")
 pred_sp_df_hp_t1 <- as.data.frame(pred_sp_hp_t1)
 colnames(pred_sp_df_hp_t1) <- c("value", "x", "y")
 
+#Predictions from full model (Hostplant T2)
+predict_presence_hp_t2 = dismo::predict(object = mx_best_hp_t2, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_t2 <- as(predict_presence_hp_t2, "SpatialPixelsDataFrame")
+pred_sp_df_hp_t2 <- as.data.frame(pred_sp_hp_t2)
+colnames(pred_sp_df_hp_t2) <- c("value", "x", "y")
 
 #Plotting 
 g3 = ggplot() +  
@@ -143,20 +171,16 @@ g3 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
-  scale_fill_viridis() +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
-  theme(legend.key.width=unit(2, "cm")) +
-  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
-  ggtitle("1960-1999") +
-  theme_nothing(legend = TRUE)
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  ggtitle("1959 - 1999") +
+  coord_quickmap()
   
 
-#Predictions from full model (Swallowtail T2)
-predict_presence_hp_t2 = dismo::predict(object = mx_best_hp_t2, x = bioclim.data, ext = geographic.extent)
-
-pred_sp_hp_t2 <- as(predict_presence_hp_t2, "SpatialPixelsDataFrame")
-pred_sp_df_hp_t2 <- as.data.frame(pred_sp_hp_t2)
-colnames(pred_sp_df_hp_t2) <- c("value", "x", "y")
 
 #Plotting Swallowtail T2
 g4 = ggplot() +  
@@ -167,12 +191,14 @@ g4 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
-  scale_fill_viridis() +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
-  theme(legend.key.width=unit(2, "cm")) +
-  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
-  ggtitle("2000-2019") +
-  theme_nothing(legend = TRUE)
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  ggtitle("2000 - 2019") +
+  coord_quickmap()
 
 maxent_raw_hp = ggarrange(g3, g4, common.legend = TRUE)
 maxent_raw_hp
@@ -184,6 +210,7 @@ ggsave(plot = maxent_raw_hp, filename = "./output/hostplant_maxent_raw.png", dev
 #Threshold maps
 
 #Evaluate on test data (mirrored from other script -will probably need to pull in all of these objects from "./scripts/modeling_big_script.R)
+#Evaluate on test data
 ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bioclim.data)
 ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bioclim.data)
 ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
@@ -218,7 +245,8 @@ g5 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
-  ggtitle("Swallowtail")
+  ggtitle("Swallowtail") +
+  xlim(c(25,50))
 
 #plotting hp
 g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
@@ -226,7 +254,8 @@ g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
-  ggtitle("Hostplant")
+  ggtitle("Hostplant") +
+  xlim(c(25,50))
 
 histograms_plot = ggarrange(g5, g6, common.legend = TRUE, nrow = 2)
 histograms_plot
@@ -244,11 +273,12 @@ g7 = ggplot() +
                color="grey75", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
   geom_point(data = swallowtail_t1, aes(x = longitude, y = latitude), alpha = 0.5, color = "yellow", shape = 3) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
-  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_nothing(legend = TRUE) +
-  ggtitle("1960-1999")
+  ggtitle("1960-1999") +
+  coord_quickmap()
 
 #T2
 g8 = ggplot() +  
@@ -260,11 +290,12 @@ g8 = ggplot() +
                color="grey75", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
   geom_point(data = swallowtail_t2, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow", shape = 3) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm")) +
-  coord_equal(ylim = c(22, 50), xlim = c(-100, -65)) +
   theme_nothing(legend = TRUE) +
-  ggtitle("2000-2019")
+  ggtitle("2000-2019") +
+  coord_quickmap()
 
 maxent_th_st = ggarrange(g7, g8, common.legend = TRUE)
 maxent_th_st
