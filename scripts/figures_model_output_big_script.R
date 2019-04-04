@@ -209,12 +209,12 @@ ggsave(plot = maxent_raw_hp, filename = "./output/hostplant_maxent_raw.png", dev
 
 #Threshold maps
 
-#Evaluate on test data (mirrored from other script -will probably need to pull in all of these objects from "./scripts/modeling_big_script.R)
-#Evaluate on test data
-ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bioclim.data)
-ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bioclim.data)
-ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
-ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
+#Loading the evaluate objects from the model building script
+
+ev_st_t1 = readRDS("./data/ev_st_t1.RDS")
+ev_st_t2 = readRDS("./data/ev_st_t2.RDS")
+ev_hp_t1 = readRDS("./data/ev_hp_t1.RDS")
+ev_hp_t2 = readRDS("./data/ev_hp_t2.RDS")
 
 #finding the threshold for presence/absence for each model
 st_t1_threshold = threshold(ev_st_t1, 'spec_sens')
@@ -245,8 +245,9 @@ g5 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
-  ggtitle("Swallowtail") +
-  xlim(c(25,50))
+  ggtitle("Papilio cresphontes") +
+  xlim(c(25,50)) +
+  theme(title = element_text(face = "italic"))
 
 #plotting hp
 g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
@@ -254,8 +255,9 @@ g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
-  ggtitle("Hostplant") +
-  xlim(c(25,50))
+  ggtitle("Zanthoxylum americanum") +
+  xlim(c(25,50)) +
+  theme(title = element_text(face = "italic"))
 
 histograms_plot = ggarrange(g5, g6, common.legend = TRUE, nrow = 2)
 histograms_plot

@@ -169,6 +169,12 @@ sb_hp_t2 <- spatialBlock(speciesData = dfsphpt2,
                          yOffset = 0,
                          progress = T)
 
+#Saving Spatial CV splits - these actually take a surprising amount of time to run, and are necessary building blocks for threshold maps in the figures script
+saveRDS(sb_st_t1, "./data/st_t1_sb.RDS")
+saveRDS(sb_st_t2, "./data/st_t2_sb.RDS")
+saveRDS(sb_hp_t1, "./data/hp_t1_sb.RDS")
+saveRDS(sb_hp_t2, "./data/hp_t2_sb.RDS")
+
 #Getting dataframes to feed into the model (dropping NAs)
 data_st_t1 = raster::extract(bioclim.data, df_st_t1[,-3], df = TRUE) %>%
   bind_cols(df_st_t1) %>%
@@ -373,7 +379,11 @@ ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x 
 ev_hp_t1 = evaluate(p_hp_t1_test, a = bg_hostplant_t1,  model = best_hp_t1, x = bioclim.data)
 ev_hp_t2 = evaluate(p_hp_t2_test, a = bg_hostplant_t2, model = best_hp_t2, x = bioclim.data)
 
-
+#Saving evaluate objects for threshold maps in the figure-building script
+saveRDS(ev_st_t1, "./data/ev_st_t1.RDS")
+saveRDS(ev_st_t2, "./data/ev_st_t2.RDS")
+saveRDS(ev_hp_t1, "./data/ev_hp_t1.RDS")
+saveRDS(ev_hp_t2, "./data/ev_hp_t2.rds")
 
 # Selecting Final Models and Running on All Data --------------------------
 #Let's build final models
