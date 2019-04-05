@@ -19,6 +19,7 @@ library(maps)
 library(ggpubr)
 library(blockCV)
 library(ENMeval)
+library(ggridges)
 
 #Loading in raw occurence data
 swallowtail = read_csv("./data/swallowtail_data.csv")
@@ -52,13 +53,6 @@ mx_best_st_t1 = readRDS("./models/full_best_st_t1.rds")
 mx_best_st_t2 = readRDS("./models/full_best_st_t2.rds")
 
 # Building Predictions and Plotting ---------------------------------------
-
-#Predictions from full model (Swallowtail T1)
-predict_presence_st_t1 = dismo::predict(object = mx_best_st_t1, x = bioclim.data, ext = geographic.extent)
-
-pred_sp_st_t1 <- as(predict_presence_st_t1, "SpatialPixelsDataFrame")
-pred_sp_df_st_t1 <- as.data.frame(pred_sp_st_t1)
-colnames(pred_sp_df_st_t1) <- c("value", "x", "y")
 
 #Pulling in polygons for states and provinces
 #Getting map data
@@ -97,6 +91,14 @@ ggplot() +
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
   geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25, fill = NA)
+
+#Predictions from full model (Swallowtail T1)
+predict_presence_st_t1 = dismo::predict(object = mx_best_st_t1, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_st_t1 <- as(predict_presence_st_t1, "SpatialPixelsDataFrame")
+pred_sp_df_st_t1 <- as.data.frame(pred_sp_st_t1)
+colnames(pred_sp_df_st_t1) <- c("value", "x", "y")
+
 
 #Predictions from full model (Swallowtail T2)
 predict_presence_st_t2 = dismo::predict(object = mx_best_st_t2, x = bioclim.data, ext = geographic.extent)
@@ -385,3 +387,51 @@ g11 = ggplot(data = swallowtail_inset, aes(x = year, y = max_lat, size = n)) +
 g11
 
 ggsave(plot = g11, filename = "./output/max_swallowtail_lat_by_year.png", device = "png")
+
+#Ridgeplot
+years = swallowtail %>%
+  group_by(year) %>%
+  summarize(n = n()) %>%
+  filter(n > 5) %>%
+  filter(year != 2019) %>%
+  select(year) %>%
+  pull()
+
+#Ridge plot of occurence data - with city references
+#Quebec City - 46.8139
+#Ottawa  - 45.4215
+#Toronto - 43.6532
+#Detroit - 42.3314
+#Indianapolis - 39.7684
+ridge_plot = swallowtail %>%
+  filter(year %in% years) %>%
+ggplot(aes(y = factor(year), x = latitude)) +
+  geom_density_ridges(scale = 4) +
+  geom_linerange(x = 46.8139, ymin = 1, ymax = 38, lty = 2) +
+  geom_linerange(x = 45.4215, ymin = 1, ymax = 39, lty = 2) +
+  geom_linerange(x= 43.6532, ymin = 1, ymax = 40, lty = 2) +
+  geom_linerange(x = 39.7684, ymin = 1, ymax = 37, lty = 2) +
+  theme_classic() +
+  annotate(geom = "text", 
+           label = "Indianapolis", 
+           x = 39.7684,
+           y = 38.5) +
+  annotate(geom = "text", 
+           label = "Toronto", 
+           x = 43.6532,
+           y = 41) +
+  annotate(geom = "text", 
+           label = "Ottawa", 
+           x = 45.4215,
+           y = 39.5) +
+  annotate(geom = "text", 
+           label = "Quebec City", 
+           x = 48.5,
+           y = 39) +
+  coord_cartesian(ylim = c(0,41)) +
+  xlab("Latitude (º)") +
+  ylab("Year") +
+  theme(text = element_text(size = 18))
+  
+ggsave(plot = ridge_plot, filename ="./output/ridge_plot.png", device = "png")
+                      
