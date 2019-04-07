@@ -120,6 +120,14 @@ dfsphpt2 = SpatialPointsDataFrame(df_hp_t2[,c("longitude","latitude")],
                                   df_hp_t2, 
                                   proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
 
+#Trying out spatial auto range function
+sp_test <- spatialAutoRange(rasterLayer = bioclim.data,
+                                  sampleNumber = 5000,
+                                  border = NULL,
+                                  showPlots = TRUE,
+                                  plotVariograms = FALSE,
+                                  doParallel = FALSE)
+
 # blockCV Train-Test Split for all 4 models ------------------------------------------------
 sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
                          species = "Species",
