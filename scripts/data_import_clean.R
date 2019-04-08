@@ -2,6 +2,9 @@
 #Keaton Wilson
 #keatonwilson@me.com
 #2019-02-15
+#
+#
+#Updated on 2019-04-08 to include additional host plants
 
 #Loading appropriate packages
 library(tidyverse)
@@ -114,22 +117,43 @@ ggmap(northeast) +
 #HOST PLANT DATA
 
 #Pull in host plant data
-host_plant = occ(query = "Zanthoxylum americanum", has_coords = TRUE, from = c("inat", "gbif"), limit = 10000)
+host_plant_1 = occ(query = "Zanthoxylum americanum", has_coords = TRUE, from = c("inat", "gbif"), limit = 10000)
+host_plant_2 = occ(query = "Zanthoxylum clava-herculis", has_coords = TRUE, from = c("inat", "gbif"), limit = 10000)
+host_plant_3 = occ(query = "Ptelea trifoliata", has_coords = TRUE, from = c("inat", "gbif"), limit = 10000)
 
 #Filtering out anything from inat that isn't research grade
-host_plant$inat$data$`Zanthoxylum` = host_plant$inat$data$`Zanthoxylum` %>%
+host_plant_1$inat$data$`Zanthoxylum` = host_plant_1$inat$data$`Zanthoxylum` %>%
+  filter(quality_grade == "research")
+host_plant_2$inat$data$`Zanthoxylum` = host_plant_2$inat$data$`Zanthoxylum` %>%
+  filter(quality_grade == "research")
+host_plant_3$inat$data$`Ptelea` = host_plant_3$inat$data$`Ptelea` %>%
   filter(quality_grade == "research")
 
 #Aggregating records
-host_plant_df = occ2df(host_plant)
+host_plant_df_1 = occ2df(host_plant_1)
+host_plant_df_2 = occ2df(host_plant_2)
+host_plant_df_3 = occ2df(host_plant_3)
 
 #filtering names
-host_plant_df = host_plant_df %>%
+host_plant_df_1 = host_plant_df_1 %>%
   filter(name == "Zanthoxylum americanum") %>%
   mutate(Longitude = as.numeric(longitude), 
          Latitude = as.numeric(latitude))
 
-hostplant_master = host_plant_df %>%
+host_plant_df_2 = host_plant_df_2 %>%
+  filter(name == "Zanthoxylum clava-herculis") %>%
+  mutate(Longitude = as.numeric(longitude), 
+         Latitude = as.numeric(latitude))
+
+host_plant_df_3 = host_plant_df_3 %>%
+  filter(name == "Ptelea trifoliata") %>%
+  mutate(Longitude = as.numeric(longitude), 
+         Latitude = as.numeric(latitude))
+
+#combining and filtering
+hostplant_master = host_plant_df_1 %>%
+  bind_rows(host_plant_df_2) %>%
+  bind_rows(host_plant_df_3) %>%
   filter(year(date) > 1959) %>%
   distinct() %>%
   filter(Latitude < 50 & Latitude > 22) %>%
@@ -137,7 +161,7 @@ hostplant_master = host_plant_df %>%
 
 #quick map
 ggmap(northeast) +
-  geom_point(data = hostplant_master, aes(x = Longitude, y = Latitude))
+  geom_point(data = hostplant_master, aes(x = Longitude, y = Latitude, color = name))
 
 #Final steps 
 
