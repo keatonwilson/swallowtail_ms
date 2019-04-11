@@ -19,8 +19,9 @@ library(readxl)
 register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
 
 #Let's query inat and GBIF for swallowtail records
-swallowtail = occ(query = "Papilio cresphontes*", from = c("gbif", "inat"),
-                  has_coords = TRUE, limit = 10000)
+swallowtail = occ(query = "Papilio cresphontes*", from = c("gbif","inat"),
+                  has_coords = TRUE, limit = 20000)
+
 
 #Filtering out anything from inat that isn't research grade
 swallowtail$inat$data$`Papilio_cresphontes*` = swallowtail$inat$data$`Papilio_cresphontes*` %>%
@@ -37,15 +38,14 @@ swallowtail_df %>%
 
 #Lots of naming errors (let's do some filtering)
 swallowtail_df = swallowtail_df %>%
-  filter(name == 'Papilio cresphontes')
+  filter(str_detect(name, 'Papilio cresphontes'))
 
 #let's check out time periods
 swallowtail_df %>%
   mutate(year = year(date)) %>%
   filter(year >= 1960) %>%
   group_by(year) %>%
-  summarize(n()) %>%
-  print(n = 59)
+  summarize(n()) 
 
 #Let's pull in Kent's data from ebutterfly, maine atlas, maritime atlas and MA butterfly club
 ebutterfly = read_xlsx(path = "./data/e_butterfly.xlsx")
@@ -105,8 +105,8 @@ swallowtail_master = bind_rows("inat_gbif" = swallowtail_df,
 swallowtail_master = swallowtail_master %>%
   filter(year(date) > 1959) %>%
   distinct() %>%
-  filter(Latitude < 50 & Latitude > 22) %>%
-  filter(Longitude < -50 & Longitude > -94)
+  filter(Latitude < 51 & Latitude > 22) %>%
+  filter(Longitude < -52 & Longitude > -94)
 
 northeast = get_map("New York", zoom = 3)
 ggmap(northeast) +
@@ -136,19 +136,25 @@ host_plant_df_3 = occ2df(host_plant_3)
 
 #filtering names
 host_plant_df_1 = host_plant_df_1 %>%
-  filter(name == "Zanthoxylum americanum") %>%
+  filter(str_detect(name, "Zanthoxylum americanum")) %>%
   mutate(Longitude = as.numeric(longitude), 
          Latitude = as.numeric(latitude))
 
 host_plant_df_2 = host_plant_df_2 %>%
-  filter(name == "Zanthoxylum clava-herculis") %>%
+  filter(str_detect(name,"Zanthoxylum clava-herculis")) %>%
   mutate(Longitude = as.numeric(longitude), 
          Latitude = as.numeric(latitude))
 
 host_plant_df_3 = host_plant_df_3 %>%
-  filter(name == "Ptelea trifoliata") %>%
+  filter(str_detect(name,"Ptelea trifoliata")) %>%
   mutate(Longitude = as.numeric(longitude), 
          Latitude = as.numeric(latitude))
+
+#Initial mapping
+host_plant_df_1 %>%
+  mutate(longitude = as.numeric(longitude),
+         latitude = as.numeric(latitude)) %>%
+  map_ggmap()
 
 #combining and filtering
 hostplant_master = host_plant_df_1 %>%
@@ -156,8 +162,15 @@ hostplant_master = host_plant_df_1 %>%
   bind_rows(host_plant_df_3) %>%
   filter(year(date) > 1959) %>%
   distinct() %>%
-  filter(Latitude < 50 & Latitude > 22) %>%
-  filter(Longitude < -50 & Longitude > -94)
+  mutate(longitude = as.numeric(longitude),
+         latitude = as.numeric(latitude)) %>%
+  filter(latitude < 50 & latitude > 22) %>%
+  filter(longitude < -50 & longitude > -94)
+
+hostplant_master %>%
+  mutate(longitude = as.numeric(longitude),
+         latitude = as.numeric(latitude)) %>%
+  map_ggmap()
 
 #quick map
 ggmap(northeast) +
@@ -180,7 +193,7 @@ hostplant_master = hostplant_master %>%
          time_frame = ifelse(year >= 2000, "T2", "T1"),
          longitude = as.numeric(longitude), 
          latitude = as.numeric(latitude)) %>%
-  select(-name, -prov, -Longitude, -Latitude, -key)
+  select(-Longitude, -Latitude, -key)
 
 #Filtering the data to include stuff east of texas (94º), and in the US, Canada. Should be done from data_import_clean script, but good to double check
 lon_min = -94
@@ -201,7 +214,9 @@ st = get_map("North Carolina", zoom = 4, maptype = "toner-background")
 ggmap(st, maptype = "toner-background", extent = "panel") +
   geom_point(data = swallowtail_master, aes(x = longitude, y = latitude, color = time_frame), alpha = 0.5) +
   scale_color_discrete(name = "Time Frame", labels = c("Pre-2000", "Post-2000")) +
-  labs(x = "Longitude (º) ", y = "Latitude (º)")  
+  labs(x = "Longitude (º) ", y = "Latitude (º)") +
+  facet_wrap(~ time_frame)
+
 
 # Importing Bioclim Data and Cropping -------------------------------------
 #We can do this from the dismo package - Interesting point here, this is different from original methods. These climate data are representative of "current" conditions - averaged between 1970 and 2000 (https://www.researchgate.net/publication/316999789_WorldClim_2_New_1-km_spatial_resolution_climate_surfaces_for_global_land_areas). 
