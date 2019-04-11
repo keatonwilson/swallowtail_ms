@@ -786,7 +786,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T1 Model
-mx_best_hp_1_t1 = maxent(bioclim.data, as.matrix(hostplant_1_t1[,1:2]), args = maxent.args[[1]])
+mx_best_hp_1_t1 = maxent(bioclim.data, as.matrix(hostplant_1_t1[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_1_t1, "./models/full_best_hp_1_t1.rds")
@@ -801,7 +801,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T2 Model
-mx_best_hp_1_t2 = maxent(bioclim.data, as.matrix(hostplant_1_t2[,1:2]), args = maxent.args[[1]])
+mx_best_hp_1_t2 = maxent(bioclim.data, as.matrix(hostplant_1_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_1_t2, "./models/full_best_hp_t2.rds")
@@ -816,7 +816,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T1 Model
-mx_best_hp_2_t1 = maxent(bioclim.data, as.matrix(hostplant_2_t1[,1:2]), args = maxent.args[[1]])
+mx_best_hp_2_t1 = maxent(bioclim.data, as.matrix(hostplant_2_t1[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_2_t1, "./models/full_best_hp_2_t1.rds")
@@ -831,7 +831,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T2 Model
-mx_best_hp_2_t2 = maxent(bioclim.data, as.matrix(hostplant_2_t2[,1:2]), args = maxent.args[[1]])
+mx_best_hp_2_t2 = maxent(bioclim.data, as.matrix(hostplant_2_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_2_t2, "./models/full_best_hp_t2.rds")
@@ -846,7 +846,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T1 Model
-mx_best_hp_3_t1 = maxent(bioclim.data, as.matrix(hostplant_3_t1[,1:2]), args = maxent.args[[1]])
+mx_best_hp_3_t1 = maxent(bioclim.data, as.matrix(hostplant_3_t1[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_3_t1, "./models/full_best_hp_3_t1.rds")
@@ -861,7 +861,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T2 Model
-mx_best_hp_3_t2 = maxent(bioclim.data, as.matrix(hostplant_3_t2[,1:2]), args = maxent.args[[1]])
+mx_best_hp_3_t2 = maxent(bioclim.data, as.matrix(hostplant_3_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_3_t2, "./models/full_best_hp_3_t2.rds")
