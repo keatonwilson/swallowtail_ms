@@ -425,6 +425,11 @@ histograms_plot
 
 ggsave(plot = histograms_plot, filename = "./output/swallowtail_density_plot.png", device = "png")
 
+swallowtail_t1 = swallowtail %>%
+  filter(time_frame == "T1")
+
+swallowtail_t2 = swallowtail %>%
+  filter(time_frame == "T2")
 #threshold maps
 #Swallowtail T1
 g13 = ggplot() +  
@@ -463,7 +468,7 @@ g14 = ggplot() +
 maxent_th_st = ggarrange(g13, g14, common.legend = TRUE)
 maxent_th_st
 
-ggsave(plot = maxent_th_st, filename = "./output/swallowtail_treshold_occurence.png", device = "png")
+ggsave(plot = maxent_th_st, filename = "./output/swallowtail_threshold_occurence.png", device = "png")
 #Environmental Variable Importance
 
 #Swallowtail time-frame 1
@@ -492,7 +497,7 @@ env_plot_2 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   ggtitle("Swallowtail T2") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-#hostplant time-frame 1
+#hostplant time-frame 1 - need to do these for all host plants
 df = var.importance(mx_best_hp_t1)
 df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
                                              "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
@@ -663,4 +668,4 @@ g14 = ggplot() +
 maxent_th_hp = ggarrange(g13, g14, common.legend = TRUE)
 maxent_th_hp
 
-ggsave(plot = maxent_th_hp, filename = "./output/hostplants_treshold_occurence.png", device = "png")
+ggsave(plot = maxent_th_hp, filename = "./output/hostplants_threshold_occurence.png", device = "png")
