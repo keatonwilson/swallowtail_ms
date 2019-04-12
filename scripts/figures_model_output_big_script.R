@@ -47,10 +47,14 @@ geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_
 bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
 
 #Loading in model objects
-mx_best_hp_t2 = readRDS("./models/full_best_hp_t2.rds")
-mx_best_hp_t1 = readRDS("./models/full_best_hp_t1.rds")
 mx_best_st_t1 = readRDS("./models/full_best_st_t1.rds")
 mx_best_st_t2 = readRDS("./models/full_best_st_t2.rds")
+mx_best_hp_1_t2 = readRDS("./models/full_best_hp_1_t2.rds")
+mx_best_hp_1_t1 = readRDS("./models/full_best_hp_1_t1.rds")
+mx_best_hp_2_t2 = readRDS("./models/full_best_hp_2_t2.rds")
+mx_best_hp_2_t1 = readRDS("./models/full_best_hp_2_t1.rds")
+mx_best_hp_3_t2 = readRDS("./models/full_best_hp_3_t2.rds")
+mx_best_hp_3_t1 = readRDS("./models/full_best_hp_3_t1.rds")
 
 # Building Predictions and Plotting ---------------------------------------
 
@@ -150,26 +154,26 @@ maxent_raw_st
 
 ggsave(plot = maxent_raw_st, filename = "./output/swallowtail_maxent_raw.png", device = "png")
 
-#Predictions from full model (Hostplant T1)
-predict_presence_hp_t1 = dismo::predict(object = mx_best_hp_t1, x = bioclim.data, ext = geographic.extent)
+#Predictions from full model (Hostplant 1 T1)
+predict_presence_hp_1_t1 = dismo::predict(object = mx_best_hp_1_t1, x = bioclim.data, ext = geographic.extent)
 
-pred_sp_hp_t1 <- as(predict_presence_hp_t1, "SpatialPixelsDataFrame")
-pred_sp_df_hp_t1 <- as.data.frame(pred_sp_hp_t1)
-colnames(pred_sp_df_hp_t1) <- c("value", "x", "y")
+pred_sp_hp_1_t1 <- as(predict_presence_hp_1_t1, "SpatialPixelsDataFrame")
+pred_sp_df_hp_1_t1 <- as.data.frame(pred_sp_hp_1_t1)
+colnames(pred_sp_df_hp_1_t1) <- c("value", "x", "y")
 
 #Predictions from full model (Hostplant T2)
-predict_presence_hp_t2 = dismo::predict(object = mx_best_hp_t2, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_1_t2 = dismo::predict(object = mx_best_hp_1_t2, x = bioclim.data, ext = geographic.extent)
 
-pred_sp_hp_t2 <- as(predict_presence_hp_t2, "SpatialPixelsDataFrame")
-pred_sp_df_hp_t2 <- as.data.frame(pred_sp_hp_t2)
-colnames(pred_sp_df_hp_t2) <- c("value", "x", "y")
+pred_sp_hp_1_t2 <- as(predict_presence_hp_1_t2, "SpatialPixelsDataFrame")
+pred_sp_df_hp_1_t2 <- as.data.frame(pred_sp_hp_1_t2)
+colnames(pred_sp_df_hp_1_t2) <- c("value", "x", "y")
 
 #Plotting 
 g3 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
-  geom_tile(data=pred_sp_df_hp_t1, aes(x=x, y=y, fill=value)) + 
+  geom_tile(data=pred_sp_df_hp_1_t1, aes(x=x, y=y, fill=value)) + 
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
@@ -189,7 +193,7 @@ g4 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
-  geom_tile(data=pred_sp_df_hp_t2, aes(x=x, y=y, fill=value)) + 
+  geom_tile(data=pred_sp_df_hp_1_t2, aes(x=x, y=y, fill=value)) + 
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey50", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
@@ -202,10 +206,124 @@ g4 = ggplot() +
   ggtitle("2000 - 2019") +
   coord_quickmap()
 
-maxent_raw_hp = ggarrange(g3, g4, common.legend = TRUE)
-maxent_raw_hp
+maxent_raw_hp_1 = ggarrange(g3, g4, common.legend = TRUE)
+maxent_raw_hp_1
 
-ggsave(plot = maxent_raw_hp, filename = "./output/hostplant_maxent_raw.png", device = "png")
+ggsave(plot = maxent_raw_hp_1, filename = "./output/hostplant_1_maxent_raw.png", device = "png")
+
+#Predictions from full model (Hostplant 2 T1)
+predict_presence_hp_2_t1 = dismo::predict(object = mx_best_hp_2_t1, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_2_t1 <- as(predict_presence_hp_2_t1, "SpatialPixelsDataFrame")
+pred_sp_df_hp_2_t1 <- as.data.frame(pred_sp_hp_2_t1)
+colnames(pred_sp_df_hp_2_t1) <- c("value", "x", "y")
+
+#Predictions from full model (Hostplant 2 T2)
+predict_presence_hp_2_t2 = dismo::predict(object = mx_best_hp_2_t2, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_2_t2 <- as(predict_presence_hp_2_t2, "SpatialPixelsDataFrame")
+pred_sp_df_hp_2_t2 <- as.data.frame(pred_sp_hp_2_t2)
+colnames(pred_sp_df_hp_2_t2) <- c("value", "x", "y")
+
+#Plotting hostplant 2 t1
+g5 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_hp_2_t1, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  ggtitle("1959 - 1999") +
+  coord_quickmap()
+
+
+
+#Plotting hostplant 2 T2
+g6 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_hp_2_t2, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  ggtitle("2000 - 2019") +
+  coord_quickmap()
+
+maxent_raw_hp_2 = ggarrange(g5, g6, common.legend = TRUE)
+maxent_raw_hp_2
+
+ggsave(plot = maxent_raw_hp_2, filename = "./output/hostplant_2_maxent_raw.png", device = "png")
+
+#Predictions from full model (Hostplant 3 T1)
+predict_presence_hp_3_t1 = dismo::predict(object = mx_best_hp_3_t1, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_3_t1 <- as(predict_presence_hp_3_t1, "SpatialPixelsDataFrame")
+pred_sp_df_hp_3_t1 <- as.data.frame(pred_sp_hp_3_t1)
+colnames(pred_sp_df_hp_3_t1) <- c("value", "x", "y")
+
+#Predictions from full model (Hostplant 3 T2)
+predict_presence_hp_3_t2 = dismo::predict(object = mx_best_hp_3_t2, x = bioclim.data, ext = geographic.extent)
+
+pred_sp_hp_3_t2 <- as(predict_presence_hp_3_t2, "SpatialPixelsDataFrame")
+pred_sp_df_hp_3_t2 <- as.data.frame(pred_sp_hp_3_t2)
+colnames(pred_sp_df_hp_3_t2) <- c("value", "x", "y")
+
+#Plotting 
+g7 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_hp_3_t1, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  ggtitle("1959 - 1999") +
+  coord_quickmap()
+
+
+
+#Plotting Swallowtail T2
+g8 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "#440154FF") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "#440154FF") +
+  geom_tile(data=pred_sp_df_hp_3_t2, aes(x=x, y=y, fill=value)) + 
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey50", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  scale_fill_viridis(name = "Probability of Occurence") +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  ggtitle("2000 - 2019") +
+  coord_quickmap()
+
+maxent_raw_hp_3 = ggarrange(g7, g8, common.legend = TRUE)
+maxent_raw_hp_3
+
+ggsave(plot = maxent_raw_hp_3, filename = "./output/hostplant_3_maxent_raw.png", device = "png")
 
 # Threshold Maps and Density Figures --------------------------------------
 
@@ -215,14 +333,22 @@ ggsave(plot = maxent_raw_hp, filename = "./output/hostplant_maxent_raw.png", dev
 
 ev_st_t1 = readRDS("./data/ev_st_t1.RDS")
 ev_st_t2 = readRDS("./data/ev_st_t2.RDS")
-ev_hp_t1 = readRDS("./data/ev_hp_t1.RDS")
-ev_hp_t2 = readRDS("./data/ev_hp_t2.RDS")
+ev_hp_1_t1 = readRDS("./data/ev_hp_1_t1.RDS")
+ev_hp_1_t2 = readRDS("./data/ev_hp_1_t2.RDS")
+ev_hp_2_t1 = readRDS("./data/ev_hp_2_t1.RDS")
+ev_hp_2_t2 = readRDS("./data/ev_hp_2_t2.RDS")
+ev_hp_3_t1 = readRDS("./data/ev_hp_3_t1.RDS")
+ev_hp_3_t2 = readRDS("./data/ev_hp_3_t2.RDS")
 
 #finding the threshold for presence/absence for each model
 st_t1_threshold = threshold(ev_st_t1, 'spec_sens')
 st_t2_threshold = threshold(ev_st_t2, 'spec_sens')
-hp_t1_threshold = threshold(ev_hp_t1, 'spec_sens')
-hp_t2_threshold = threshold(ev_hp_t2, 'spec_sens')
+hp_1_t1_threshold = threshold(ev_hp_1_t1, 'spec_sens')
+hp_1_t2_threshold = threshold(ev_hp_1_t2, 'spec_sens')
+hp_2_t1_threshold = threshold(ev_hp_2_t1, 'spec_sens')
+hp_2_t2_threshold = threshold(ev_hp_2_t2, 'spec_sens')
+hp_3_t1_threshold = threshold(ev_hp_3_t1, 'spec_sens')
+hp_3_t2_threshold = threshold(ev_hp_3_t2, 'spec_sens')
 
 #building filtered dataframes of predictions
 st_t1_threshold = pred_sp_df_st_t1 %>%
@@ -231,18 +357,32 @@ st_t1_threshold = pred_sp_df_st_t1 %>%
 st_t2_threshold = pred_sp_df_st_t2 %>%
   filter(value > st_t2_threshold)
 
-hp_t1_threshold = pred_sp_df_hp_t1 %>%
-  filter(value > hp_t1_threshold)
+hp_1_t1_threshold = pred_sp_df_hp_1_t1 %>%
+  filter(value > hp_1_t1_threshold)
 
-hp_t2_threshold = pred_sp_df_hp_t2 %>%
-  filter(value > hp_t2_threshold)
+hp_1_t2_threshold = pred_sp_df_hp_1_t2 %>%
+  filter(value > hp_1_t2_threshold)
+
+hp_2_t1_threshold = pred_sp_df_hp_2_t1 %>%
+  filter(value > hp_2_t1_threshold)
+
+hp_2_t2_threshold = pred_sp_df_hp_2_t2 %>%
+  filter(value > hp_2_t2_threshold)
+
+hp_3_t1_threshold = pred_sp_df_hp_3_t1 %>%
+  filter(value > hp_3_t1_threshold)
+
+hp_3_t2_threshold = pred_sp_df_hp_3_t2 %>%
+  filter(value > hp_3_t2_threshold)
 
 #binding
 threshold_df_st = bind_rows("t1" = st_t1_threshold, "t2" = st_t2_threshold, .id = "timeframe")
-threshold_df_hp = bind_rows("t1" = hp_t1_threshold, "t2" = hp_t2_threshold, .id = "timeframe")
+threshold_df_hp_1 = bind_rows("t1" = hp_1_t1_threshold, "t2" = hp_1_t2_threshold, .id = "timeframe")
+threshold_df_hp_2 = bind_rows("t1" = hp_2_t1_threshold, "t2" = hp_2_t2_threshold, .id = "timeframe")
+threshold_df_hp_3 = bind_rows("t1" = hp_3_t1_threshold, "t2" = hp_3_t2_threshold, .id = "timeframe")
 
 #plotting st
-g5 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
+g9 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
   geom_density(alpha = 0.8) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
@@ -251,8 +391,8 @@ g5 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
   xlim(c(25,50)) +
   theme(title = element_text(face = "italic"))
 
-#plotting hp
-g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
+#plotting hp 1
+g10 = ggplot(threshold_df_hp_1, aes(x = y, fill = timeframe)) +
   geom_density(alpha = 0.8) +
   theme_classic() +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
@@ -261,14 +401,33 @@ g6 = ggplot(threshold_df_hp, aes(x = y, fill = timeframe)) +
   xlim(c(25,50)) +
   theme(title = element_text(face = "italic"))
 
-histograms_plot = ggarrange(g5, g6, common.legend = TRUE, nrow = 2)
+g11 = ggplot(threshold_df_hp_2, aes(x = y, fill = timeframe)) +
+  geom_density(alpha = 0.8) +
+  theme_classic() +
+  labs(x = "Latitude", y = "Kernel Density Estimate") +
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
+  ggtitle("Zanthoxylum clava-herculis") +
+  xlim(c(25,50)) +
+  theme(title = element_text(face = "italic"))
+
+g12 = ggplot(threshold_df_hp_3, aes(x = y, fill = timeframe)) +
+  geom_density(alpha = 0.8) +
+  theme_classic() +
+  labs(x = "Latitude", y = "Kernel Density Estimate") +
+  scale_fill_discrete(name = "Time Frame", labels = c("1960-1999", "2000-2019")) +
+  ggtitle("Ptelea trifoliata") +
+  xlim(c(25,50)) +
+  theme(title = element_text(face = "italic"))
+
+
+histograms_plot = ggarrange(g9,g10,g11,g12, common.legend = TRUE, nrow = 4)
 histograms_plot
 
 ggsave(plot = histograms_plot, filename = "./output/swallowtail_density_plot.png", device = "png")
 
 #threshold maps
 #Swallowtail T1
-g7 = ggplot() +  
+g13 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "grey10") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
@@ -285,7 +444,7 @@ g7 = ggplot() +
   coord_quickmap()
 
 #T2
-g8 = ggplot() +  
+g14 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "grey10") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
@@ -301,7 +460,7 @@ g8 = ggplot() +
   ggtitle("2000-2019") +
   coord_quickmap()
 
-maxent_th_st = ggarrange(g7, g8, common.legend = TRUE)
+maxent_th_st = ggarrange(g13, g14, common.legend = TRUE)
 maxent_th_st
 
 ggsave(plot = maxent_th_st, filename = "./output/swallowtail_treshold_occurence.png", device = "png")
@@ -435,3 +594,73 @@ ggplot(aes(y = factor(year), x = latitude)) +
   
 ggsave(plot = ridge_plot, filename ="./output/ridge_plot.png", device = "png")
                       
+
+#Stacked Threshold map for hostplants
+#T1
+
+hostplant_clean = 
+  hostplant %>%
+  mutate(name = ifelse(str_detect(name, "Zanthoxylum americanum"), "Zanthoxylum americanum",
+                       ifelse(str_detect(name, "Zanthoxylum clava-herculis"), "Zanthoxylum claca-herculis",
+                              "Ptelea trifoliata")))
+hp_thresholds_df = 
+  bind_rows(hp_1_t1_threshold, hp_2_t1_threshold, hp_3_t1_threshold, .id = "id") %>%
+  mutate(name = ifelse(id == 1, "Zanthoxylum americanum",
+                       ifelse(id == 2, "Zanthoxylum clava-herculis", "Ptelea trifoliata"))) %>%
+  select(-id)
+
+
+g13 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "grey10") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
+  geom_tile(data = hp_thresholds_df, aes(x = x, y = y, fill = name), alpha = 0.7) +
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey75", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  # geom_point(data = hostplant %>%
+  #              filter(time_frame == "T1") %>%
+  #              filter(str_detect(name, "Zanthoxylum americanum")),
+  #            aes(x = longitude, y = latitude), color ="#F8766D",  alpha = 0.5, shape = 3) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  scale_fill_discrete(name = "Species", 
+                      breaks = c("Zanthoxylum americanum", 
+                                 "Zanthoxylum clava-herculis", 
+                                 "Ptelea trifoliata")) +
+  ggtitle("1960-1999") +
+  coord_quickmap()
+
+hp_thresholds_df = 
+  bind_rows(hp_1_t2_threshold, hp_2_t2_threshold, hp_3_t2_threshold, .id = "id") %>%
+  mutate(name = ifelse(id == 1, "Zanthoxylum americanum",
+                       ifelse(id == 2, "Zanthoxylum clava-herculis", "Ptelea trifoliata"))) %>%
+  select(-id)
+#T2
+g14 = ggplot() +  
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color=NA, size=0.25, fill = "grey10") +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
+  geom_tile(data = hp_thresholds_df, aes(x = x, y = y, fill = name), alpha = 0.7) +
+  geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
+               color="grey75", size=0.25, fill = NA) +
+  geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
+  # geom_point(data = swallowtail_t2, aes(x = longitude, y = latitude), alpha = 0.2, color = "yellow", shape = 3) +
+  geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
+  theme(legend.position="bottom") +
+  theme(legend.key.width=unit(2, "cm"),
+        plot.title = element_text(hjust = 0.5, size = 24)) +
+  theme_nothing(legend = TRUE) +
+  scale_fill_discrete(name = "Species", 
+                      breaks = c("Zanthoxylum americanum", 
+                                 "Zanthoxylum clava-herculis", 
+                                 "Ptelea trifoliata")) +
+  ggtitle("2000-2019") +
+  coord_quickmap()
+
+maxent_th_hp = ggarrange(g13, g14, common.legend = TRUE)
+maxent_th_hp
+
+ggsave(plot = maxent_th_hp, filename = "./output/hostplants_treshold_occurence.png", device = "png")

@@ -804,7 +804,7 @@ maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 mx_best_hp_1_t2 = maxent(bioclim.data, as.matrix(hostplant_1_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
-saveRDS(mx_best_hp_1_t2, "./models/full_best_hp_t2.rds")
+saveRDS(mx_best_hp_1_t2, "./models/full_best_hp_1_t2.rds")
 
 #Hostplant 2 T1
 #Pulling out features
@@ -834,7 +834,7 @@ maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 mx_best_hp_2_t2 = maxent(bioclim.data, as.matrix(hostplant_2_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
-saveRDS(mx_best_hp_2_t2, "./models/full_best_hp_t2.rds")
+saveRDS(mx_best_hp_2_t2, "./models/full_best_hp_2_t2.rds")
 
 #Hostplant 3 T1
 #Pulling out features
