@@ -30,11 +30,20 @@ swallowtail = swallowtail[,-1] %>%
 hostplant = read_csv("./data/hostplant_data.csv")
 hostplant = hostplant[,-1]
 
-#bioclim environmental variables
-bioclim.data <- raster::getData(name = "worldclim",
-                                var = "bio",
-                                res = 2.5,
-                                path = "./data/")
+# #bioclim environmental variables
+# bioclim.data <- raster::getData(name = "worldclim",
+#                                 var = "bio",
+#                                 res = 2.5,
+#                                 path = "./data/")
+
+#Environmental Data 
+bv_t1 = raster::brick("./data/terraclim/biovar_avg_t1.grd")
+bv_t2 = raster::brick("./data/terraclim/biovar_avg_t2.grd")
+
+#renaming
+names_seq = paste("Bio",seq(1:19), sep = "")
+names(bv_t1) = names_seq
+names(bv_t2) = names_seq
 
 # Determine geographic extent of our data
 max_lat_swallowtail <- ceiling(max(swallowtail$latitude))
@@ -43,8 +52,6 @@ max_lon_swallowtail <- ceiling(max(swallowtail$longitude))
 min_lon_swallowtail <- floor(min(swallowtail$longitude))
 geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_lat_swallowtail, max_lat_swallowtail))
 
-# Crop bioclim data to geographic extent of swallowtails
-bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
 
 #Loading in model objects
 mx_best_st_t1 = readRDS("./models/full_best_st_t1.rds")
@@ -97,7 +104,7 @@ ggplot() +
   geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25, fill = NA)
 
 #Predictions from full model (Swallowtail T1)
-predict_presence_st_t1 = dismo::predict(object = mx_best_st_t1, x = bioclim.data, ext = geographic.extent)
+predict_presence_st_t1 = dismo::predict(object = mx_best_st_t1, x = bv_t1, ext = geographic.extent)
 
 pred_sp_st_t1 <- as(predict_presence_st_t1, "SpatialPixelsDataFrame")
 pred_sp_df_st_t1 <- as.data.frame(pred_sp_st_t1)
@@ -105,7 +112,7 @@ colnames(pred_sp_df_st_t1) <- c("value", "x", "y")
 
 
 #Predictions from full model (Swallowtail T2)
-predict_presence_st_t2 = dismo::predict(object = mx_best_st_t2, x = bioclim.data, ext = geographic.extent)
+predict_presence_st_t2 = dismo::predict(object = mx_best_st_t2, x = bv_t2, ext = geographic.extent)
 
 pred_sp_st_t2 <- as(predict_presence_st_t2, "SpatialPixelsDataFrame")
 pred_sp_df_st_t2 <- as.data.frame(pred_sp_st_t2)
@@ -149,26 +156,29 @@ g2 = ggplot() +
   ggtitle("2000 - 2019") +
   coord_quickmap()
 
-maxent_raw_st = ggarrange(g1, g2, common.legend = TRUE)
+maxent_raw_st = ggarrange(g1, g2, common.legend = TRUE, legend = "bottom")
+annotate_figure(maxent_raw_st,
+                top = text_grob("Papilio cresphontes", face = "italic", size = 22))
 maxent_raw_st
 
 ggsave(plot = maxent_raw_st, filename = "./output/swallowtail_maxent_raw.png", device = "png")
 
+##--------PANEL 1
 #Predictions from full model (Hostplant 1 T1)
-predict_presence_hp_1_t1 = dismo::predict(object = mx_best_hp_1_t1, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_1_t1 = dismo::predict(object = mx_best_hp_1_t1, x = bv_t1, ext = geographic.extent)
 
 pred_sp_hp_1_t1 <- as(predict_presence_hp_1_t1, "SpatialPixelsDataFrame")
 pred_sp_df_hp_1_t1 <- as.data.frame(pred_sp_hp_1_t1)
 colnames(pred_sp_df_hp_1_t1) <- c("value", "x", "y")
 
 #Predictions from full model (Hostplant T2)
-predict_presence_hp_1_t2 = dismo::predict(object = mx_best_hp_1_t2, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_1_t2 = dismo::predict(object = mx_best_hp_1_t2, x = bv_t2, ext = geographic.extent)
 
 pred_sp_hp_1_t2 <- as(predict_presence_hp_1_t2, "SpatialPixelsDataFrame")
 pred_sp_df_hp_1_t2 <- as.data.frame(pred_sp_hp_1_t2)
 colnames(pred_sp_df_hp_1_t2) <- c("value", "x", "y")
 
-#Plotting 
+#Plotting hostplant 1 t1
 g3 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
@@ -181,14 +191,15 @@ g3 = ggplot() +
   scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(3,3,3,3), "lines")) +
   theme_nothing(legend = TRUE) +
   ggtitle("1959 - 1999") +
   coord_quickmap()
   
 
 
-#Plotting Swallowtail T2
+#Plotting hp 1 T2
 g4 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
@@ -201,25 +212,25 @@ g4 = ggplot() +
   scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(3,3,3,3), "lines")) +
   theme_nothing(legend = TRUE) +
   ggtitle("2000 - 2019") +
   coord_quickmap()
 
-maxent_raw_hp_1 = ggarrange(g3, g4, common.legend = TRUE)
-maxent_raw_hp_1
+maxent_raw_hp_1 = ggarrange(g3, g4, common.legend = TRUE, legend = "none")
 
 ggsave(plot = maxent_raw_hp_1, filename = "./output/hostplant_1_maxent_raw.png", device = "png")
 
 #Predictions from full model (Hostplant 2 T1)
-predict_presence_hp_2_t1 = dismo::predict(object = mx_best_hp_2_t1, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_2_t1 = dismo::predict(object = mx_best_hp_2_t1, x = bv_t1, ext = geographic.extent)
 
 pred_sp_hp_2_t1 <- as(predict_presence_hp_2_t1, "SpatialPixelsDataFrame")
 pred_sp_df_hp_2_t1 <- as.data.frame(pred_sp_hp_2_t1)
 colnames(pred_sp_df_hp_2_t1) <- c("value", "x", "y")
 
 #Predictions from full model (Hostplant 2 T2)
-predict_presence_hp_2_t2 = dismo::predict(object = mx_best_hp_2_t2, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_2_t2 = dismo::predict(object = mx_best_hp_2_t2, x = bv_t2, ext = geographic.extent)
 
 pred_sp_hp_2_t2 <- as(predict_presence_hp_2_t2, "SpatialPixelsDataFrame")
 pred_sp_df_hp_2_t2 <- as.data.frame(pred_sp_hp_2_t2)
@@ -238,9 +249,10 @@ g5 = ggplot() +
   scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(3,3,3,3), "lines")) +
   theme_nothing(legend = TRUE) +
-  ggtitle("1959 - 1999") +
+  # ggtitle("1959 - 1999") +
   coord_quickmap()
 
 
@@ -258,31 +270,32 @@ g6 = ggplot() +
   scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(3,3,3,3), "lines")) +
   theme_nothing(legend = TRUE) +
-  ggtitle("2000 - 2019") +
+  # ggtitle("2000 - 2019") +
   coord_quickmap()
 
-maxent_raw_hp_2 = ggarrange(g5, g6, common.legend = TRUE)
+maxent_raw_hp_2 = ggarrange(g5, g6, common.legend = TRUE, legend = "none")
 maxent_raw_hp_2
 
 ggsave(plot = maxent_raw_hp_2, filename = "./output/hostplant_2_maxent_raw.png", device = "png")
 
 #Predictions from full model (Hostplant 3 T1)
-predict_presence_hp_3_t1 = dismo::predict(object = mx_best_hp_3_t1, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_3_t1 = dismo::predict(object = mx_best_hp_3_t1, x = bv_t1, ext = geographic.extent)
 
 pred_sp_hp_3_t1 <- as(predict_presence_hp_3_t1, "SpatialPixelsDataFrame")
 pred_sp_df_hp_3_t1 <- as.data.frame(pred_sp_hp_3_t1)
 colnames(pred_sp_df_hp_3_t1) <- c("value", "x", "y")
 
 #Predictions from full model (Hostplant 3 T2)
-predict_presence_hp_3_t2 = dismo::predict(object = mx_best_hp_3_t2, x = bioclim.data, ext = geographic.extent)
+predict_presence_hp_3_t2 = dismo::predict(object = mx_best_hp_3_t2, x = bv_t2, ext = geographic.extent)
 
 pred_sp_hp_3_t2 <- as(predict_presence_hp_3_t2, "SpatialPixelsDataFrame")
 pred_sp_df_hp_3_t2 <- as.data.frame(pred_sp_hp_3_t2)
 colnames(pred_sp_df_hp_3_t2) <- c("value", "x", "y")
 
-#Plotting 
+#Plotting hp 3 t1
 g7 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
@@ -295,14 +308,16 @@ g7 = ggplot() +
   scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(3,3,3,3), "lines")) +
   theme_nothing(legend = TRUE) +
-  ggtitle("1959 - 1999") +
-  coord_quickmap()
+  # ggtitle("1959 - 1999") +
+  coord_quickmap() +
+  annotate(geom = "text", label = "test")
 
 
 
-#Plotting Swallowtail T2
+#Plotting Hp 3 T2
 g8 = ggplot() +  
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "#440154FF") +
@@ -315,16 +330,35 @@ g8 = ggplot() +
   scale_fill_viridis(name = "Probability of Occurence") +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(3,3,3,3), "lines")) +
   theme_nothing(legend = TRUE) +
-  ggtitle("2000 - 2019") +
+  # ggtitle("2000 - 2019") +
   coord_quickmap()
 
-maxent_raw_hp_3 = ggarrange(g7, g8, common.legend = TRUE)
-maxent_raw_hp_3
+maxent_raw_hp_3 = ggarrange(g7, g8, common.legend = TRUE, legend = "bottom")
+maxent_raw_hp_3 
 
 ggsave(plot = maxent_raw_hp_3, filename = "./output/hostplant_3_maxent_raw.png", device = "png")
 
+#Big plot
+library(gridExtra)
+
+text.1 = ggparagraph(text = "Zanthoxylum americanum", face = "italic", size = 12)
+text.2 = ggparagraph(text = "Zanthoxylum clava-herculis", face = "italic", size = 12)
+text.3 = ggparagraph(text = "Ptelea trifoliata", face = "italic", size = 12)
+hp_master_plot = ggarrange(maxent_raw_hp_1, 
+                           maxent_raw_hp_2,
+                           maxent_raw_hp_3,
+                              nrow = 3, ncol = 1, align = "h",
+                           labels = c("Zanthoxylum americanum", 
+                                      "Zanthoxylum clava-herculis", 
+                                      "Ptelea trifofliata"), 
+                           label.x = 1, 
+                           label.y = 0.5)
+
+ggsave(plot = hp_master_plot, filename = "./output/hostplant_master_plot.png", device = "png", 
+       width = 8.5, height = 11, units = "in")
 # Threshold Maps and Density Figures --------------------------------------
 
 #Threshold maps
@@ -473,9 +507,9 @@ ggsave(plot = maxent_th_st, filename = "./output/swallowtail_threshold_occurence
 
 #Swallowtail time-frame 1
 df = var.importance(mx_best_st_t1)
-df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
-                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
-                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
 env_plot_1 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   geom_col() +
   theme_classic() +
@@ -486,9 +520,9 @@ env_plot_1 = ggplot(df, aes(x = variable, y = percent.contribution)) +
 
 #Swallowtail time-frame 2
 df = var.importance(mx_best_st_t2)
-df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
-                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
-                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
 env_plot_2 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   geom_col() +
   theme_classic() +
@@ -498,10 +532,10 @@ env_plot_2 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #hostplant time-frame 1 - need to do these for all host plants
-df = var.importance(mx_best_hp_t1)
-df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
-                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
-                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+df = var.importance(mx_best_hp_1_t1)
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
 env_plot_3 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   geom_col() +
   theme_classic() +
@@ -511,10 +545,10 @@ env_plot_3 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #hostplant time-frame 2
-df = var.importance(mx_best_hp_t2)
-df$variable = factor(df$variable, levels = c("bio1", "bio2", "bio3", "bio4", "bio5", "bio6", "bio7",
-                                             "bio8", "bio9", "bio10", "bio11", "bio12", "bio13", 
-                                             "bio14", "bio15", "bio16", "bio17", "bio18", "bio19"))
+df = var.importance(mx_best_hp_1_t2)
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
 env_plot_4 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   geom_col() +
   theme_classic() +
@@ -548,7 +582,6 @@ g11 = ggplot(data = swallowtail_inset, aes(x = year, y = max_lat, size = n)) +
   geom_vline(xintercept = 2000, lty = 2) +
   annotate(geom = "text", label = "Timeframe Break Point", x = 1994, y = 47.5)
 
-g11
 
 ggsave(plot = g11, filename = "./output/max_swallowtail_lat_by_year.png", device = "png")
 

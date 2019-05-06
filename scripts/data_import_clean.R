@@ -14,6 +14,11 @@ library(ggmap)
 library(scrubr)
 library(lubridate)
 library(readxl)
+library(daymetr)
+library(tidync)
+library(FedData)
+library(ncdf4)
+library(dismo)
 
 #register google api for mapping stuff
 register_google(key = "AIzaSyDyAqUc4o9p_DOBSF_JOXH5c_JXPqoU4Yw")
@@ -156,6 +161,8 @@ host_plant_df_1 %>%
          latitude = as.numeric(latitude)) %>%
   map_ggmap()
 
+
+
 #combining and filtering
 hostplant_master = host_plant_df_1 %>%
   bind_rows(host_plant_df_2) %>%
@@ -236,6 +243,124 @@ geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_
 # Crop bioclim data to geographic extent of swallowtails
 bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
 
+#IMporting CRU files as raster stacks
+precip_raster = raster::stack("./data/cru_ts4.02.1901.2017.pre.dat.nc")
+tmin_raster = raster::stack("./data/cru_ts4.02.1901.2017.tmn.dat.nc")
+tmax_raster = raster::stack("./data/cru_ts4.02.1901.2017.tmx.dat.nc")
+
+#This doesn't work because it only does one year at a time
+bio_vars_test = biovars(prec = precip_raster,
+                        tmin = tmin_raster,
+                        tmax = tmax_raster)
+
+#So, first step is to split all of our rasters into the two groups we want (1959-1999 & 2000-2017)
+
+#1901-01-01 - 1959-01-01
+(1959-1901)*12 - 1 #number of months. 
+
+#So the starting point for T1 is month 695
+(1999-1901)*12 - 1 #Last month in T1
+
+#QC 
+(1176-696)/12 #Divisible by 12, we're good
+
+precip_raster_t1 = precip_raster[[696:1175]]
+tmin_raster_t1 = tmin_raster[[696:1175]]
+tmax_raster_t1 = tmax_raster[[696:1175]]
+
+#Starting point for T2
+(2000-1901)
+
+#QC
+(1404-1188)/12
+
+precip_raster_t2 = precip_raster[[1189:1404]]
+tmin_raster_t2 = tmin_raster[[1189:1404]]
+tmax_raster_t2 = tmax_raster[[1189:1404]]
+
+#So essentially we now need to divide each set of data into 1 year's worth of stuff, run through biovars, compute our variables, and then average all of that over each time period. 
+#
+#Test on one iteration
+
+precip_test = precip_raster_t1[[1:12]]
+tmin_test = tmin_raster_t1[[1:12]]
+tmax_test = tmax_raster_t1[[1:12]]
+
+biovars_test = biovars(prec = precip_test,
+                       tmin = tmin_test,
+                       tmax = tmax_test)
+
+#Great. This works - but it outputs a rasterbrick, not sure how that will work with stuff feeding into a raster stack below. 
+biovar_list = list()
+length = dim(precip_raster_t1)[3]/12
+seq = 1:12
+
+for(i in 1:length) {
+  precip_sub = precip_raster_t1[[seq]]
+  tmin_sub = tmin_raster_t1[[seq]]
+  tmax_sub = tmax_raster_t1[[seq]]
+  
+  biovar_list[[i]] = biovars(prec = precip_sub,
+                            tmin = tmin_sub,
+                            tmax = tmax_sub)
+  seq = seq + 12
+  print(seq)
+}
+
+#Workflow 
+#pull out a list of raster layers for each bioclim variable
+#turn those layers into a rasterStack
+#Compute average
+#Recombine
+
+biovar_avg_combined_t1 = raster::brick(nrows = 360, ncols = 720)
+for(i in 1:19) {
+  biovar_sublist = lapply(biovar_list, '[[', i) #pulls out each bioclim variable iteratively
+  biovar_substack = stack(biovar_sublist) #combines all years into a raster stack
+  biovar_avg = calc(biovar_substack, fun = mean) #Calculates the average for each var
+  biovar_avg_combined_t1[[i]] = biovar_avg
+}
+
+#comparing structure of calculated bioclim versus what the function outputs
+bioclim.data
+biovar_avg_combined
+plot(biovar_avg_combined[[1]])
+
+#T2
+biovar_list = list()
+length = dim(precip_raster_t2)[3]/12
+seq = 1:12
+
+for(i in 1:length) {
+  precip_sub = precip_raster_t2[[seq]]
+  tmin_sub = tmin_raster_t2[[seq]]
+  tmax_sub = tmax_raster_t2[[seq]]
+  
+  biovar_list[[i]] = biovars(prec = precip_sub,
+                             tmin = tmin_sub,
+                             tmax = tmax_sub)
+  seq = seq + 12
+  print(seq)
+}
+
+biovar_avg_combined_t2 = raster::brick(nrows = 360, ncols = 720)
+for(i in 1:19) {
+  biovar_sublist = lapply(biovar_list, '[[', i) #pulls out each bioclim variable iteratively
+  biovar_substack = stack(biovar_sublist) #combines all years into a raster stack
+  biovar_avg = calc(biovar_substack, fun = mean) #Calculates the average for each var
+  biovar_avg_combined_t2[[i]] = biovar_avg #binding each averaged layer back into a brick
+}
+
+#comparing structure of calculated bioclim versus what the function outputs
+bioclim.data
+biovar_avg_combined_t2
+plot(biovar_avg_combined_t2[[1]])
+plot(biovar_avg_combined_t1[[1]])
+
+#Saving these objects
+writeRaster(biovar_avg_combined_t1, "./data/biovar_avg_combined_t1")
+writeRaster(biovar_avg_combined_t2, "./data/biovar_avg_combined_t2")
+
 #writing bioclim data
 saveRDS(bioclim.data, "./data/bioclim.rds")
 
@@ -244,3 +369,6 @@ write.csv(hostplant_master, "./data/hostplant_data.csv")
 
 #Writing butterfly records
 write.csv(swallowtail_master, "./data/swallowtail_data.csv")
+
+hostplant_master %>%
+  filter(str_detect(name, "Zanthoxylum clava-herculis")) 

@@ -36,10 +36,21 @@ hostplant_3 = hostplant %>%
   filter(str_detect(name, "Ptelea trifoliata"))
 
 #bioclim environmental variables
-bioclim.data <- raster::getData(name = "worldclim",
-                                var = "bio",
-                                res = 2.5,
-                                path = "./data/")
+# bioclim.data <- raster::getData(name = "worldclim",
+#                                 var = "bio",
+#                                 res = 2.5,
+#                                 path = "./data/")
+
+# bioclim.data = crop(bioclim.data, geographic.extent)
+
+#Environmental Data 
+bv_t1 = raster::brick("./data/terraclim/biovar_avg_t1.grd")
+bv_t2 = raster::brick("./data/terraclim/biovar_avg_t2.grd")
+
+#renaming
+names_seq = paste("Bio",seq(1:19), sep = "")
+names(bv_t1) = names_seq
+names(bv_t2) = names_seq
 
 # Determine geographic extent of our data
 max_lat_swallowtail <- ceiling(max(swallowtail$latitude))
@@ -49,7 +60,8 @@ min_lon_swallowtail <- floor(min(swallowtail$longitude))
 geographic.extent <- extent(x = c(min_lon_swallowtail, max_lon_swallowtail, min_lat_swallowtail, max_lat_swallowtail))
 
 # Crop bioclim data to geographic extent of swallowtails
-bioclim.data <- crop(x = bioclim.data, y = geographic.extent)
+bv_t1 <- crop(x = bv_t1, y = geographic.extent)
+bv_t2 <- crop(x = bv_t2, y = geographic.extent)
 
 #Dividing host plant and swallowtail into respective time periods
 #We essentially will have 8 models (HP1T1, HP2T2, STT1, STT2, etc.)
@@ -99,28 +111,28 @@ glimpse(hostplant_3_t2)
 
 #Generating background points
 #background data
-bg_swallowtail_t1 = dismo::randomPoints(bioclim.data, 10000)
+bg_swallowtail_t1 = dismo::randomPoints(bv_t1, 10000)
 colnames(bg_swallowtail_t1) = c("longitude", "latitude")
 
-bg_swallowtail_t2 = randomPoints(bioclim.data, 10000)
+bg_swallowtail_t2 = randomPoints(bv_t2, 10000)
 colnames(bg_swallowtail_t2) = c("longitude", "latitude")
 
-bg_hostplant_1_t1 = randomPoints(bioclim.data, 10000)
+bg_hostplant_1_t1 = randomPoints(bv_t1, 10000)
 colnames(bg_hostplant_1_t1) = c("longitude", "latitude")
 
-bg_hostplant_1_t2 = randomPoints(bioclim.data, 10000)
+bg_hostplant_1_t2 = randomPoints(bv_t2, 10000)
 colnames(bg_hostplant_1_t2) = c("longitude", "latitude")
 
-bg_hostplant_2_t1 = randomPoints(bioclim.data, 10000)
+bg_hostplant_2_t1 = randomPoints(bv_t1, 10000)
 colnames(bg_hostplant_2_t1) = c("longitude", "latitude")
 
-bg_hostplant_2_t2 = randomPoints(bioclim.data, 10000)
+bg_hostplant_2_t2 = randomPoints(bv_t2, 10000)
 colnames(bg_hostplant_2_t2) = c("longitude", "latitude")
 
-bg_hostplant_3_t1 = randomPoints(bioclim.data, 10000)
+bg_hostplant_3_t1 = randomPoints(bv_t1, 10000)
 colnames(bg_hostplant_3_t1) = c("longitude", "latitude")
 
-bg_hostplant_3_t2 = randomPoints(bioclim.data, 10000)
+bg_hostplant_3_t2 = randomPoints(bv_t2, 10000)
 colnames(bg_hostplant_3_t2) = c("longitude", "latitude")
 
 #Merging background and occurence data for blockCV
@@ -128,7 +140,7 @@ df_st_t1 = data.frame(swallowtail_t1) %>%
   mutate(pb = 1) %>%
   select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_swallowtail_t1) %>% 
-              mutate(pb = 0)) %>%
+              mutate(pb = 0))  %>%
   mutate(Species = as.integer(pb)) %>%
   select(-pb)
 
@@ -226,18 +238,18 @@ dfsphp3t2 = SpatialPointsDataFrame(df_hp_3_t2[,c("longitude","latitude")],
                                    proj4string = CRS("+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0"))
 
 #Trying out spatial auto range function
-sp_test <- spatialAutoRange(rasterLayer = bioclim.data,
-                                  sampleNumber = 5000,
-                                  border = NULL,
-                                  showPlots = TRUE,
-                                  plotVariograms = FALSE,
-                                  doParallel = FALSE)
+# sp_test <- spatialAutoRange(rasterLayer = biovar_t1,
+#                                   sampleNumber = 1000,
+#                                   border = NULL,
+#                                   showPlots = TRUE,
+#                                   plotVariograms = FALSE,
+#                                   doParallel = FALSE)
 
 # blockCV Train-Test Split for all 4 models ------------------------------------------------
 #Swallowtail
 sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
                          species = "Species",
-                         rasterLayer = bioclim.data,
+                         rasterLayer = bv_t1,
                          theRange = 400000, # size of the blocks
                          k = 5,
                          selection = "random",
@@ -249,7 +261,7 @@ sb_st_t1 <- spatialBlock(speciesData = dfspstt1,
 
 sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
                          species = "Species",
-                         rasterLayer = bioclim.data,
+                         rasterLayer = bv_t2,
                          theRange = 400000, # size of the blocks
                          k = 5,
                          selection = "random",
@@ -262,7 +274,7 @@ sb_st_t2 <- spatialBlock(speciesData = dfspstt2,
 #Hostplant 1
 sb_hp_1_t1 <- spatialBlock(speciesData = dfsphp1t1,
                          species = "Species",
-                         rasterLayer = bioclim.data,
+                         rasterLayer = bv_t1,
                          theRange = 400000, # size of the blocks
                          k = 5,
                          selection = "random",
@@ -274,7 +286,7 @@ sb_hp_1_t1 <- spatialBlock(speciesData = dfsphp1t1,
 
 sb_hp_1_t2 <- spatialBlock(speciesData = dfsphp1t2,
                          species = "Species",
-                         rasterLayer = bioclim.data,
+                         rasterLayer = bv_t2,
                          theRange = 400000, # size of the blocks
                          k = 5,
                          selection = "random",
@@ -287,7 +299,7 @@ sb_hp_1_t2 <- spatialBlock(speciesData = dfsphp1t2,
 #Hostplant 2
 sb_hp_2_t1 <- spatialBlock(speciesData = dfsphp2t1,
                            species = "Species",
-                           rasterLayer = bioclim.data,
+                           rasterLayer = bv_t1,
                            theRange = 400000, # size of the blocks
                            k = 5,
                            selection = "random",
@@ -299,7 +311,7 @@ sb_hp_2_t1 <- spatialBlock(speciesData = dfsphp2t1,
 
 sb_hp_2_t2 <- spatialBlock(speciesData = dfsphp2t2,
                            species = "Species",
-                           rasterLayer = bioclim.data,
+                           rasterLayer = bv_t2,
                            theRange = 400000, # size of the blocks
                            k = 5,
                            selection = "random",
@@ -312,7 +324,7 @@ sb_hp_2_t2 <- spatialBlock(speciesData = dfsphp2t2,
 #Hostplant 3
 sb_hp_3_t1 <- spatialBlock(speciesData = dfsphp3t1,
                            species = "Species",
-                           rasterLayer = bioclim.data,
+                           rasterLayer = bv_t1,
                            theRange = 400000, # size of the blocks
                            k = 5,
                            selection = "random",
@@ -324,7 +336,7 @@ sb_hp_3_t1 <- spatialBlock(speciesData = dfsphp3t1,
 
 sb_hp_3_t2 <- spatialBlock(speciesData = dfsphp3t2,
                            species = "Species",
-                           rasterLayer = bioclim.data,
+                           rasterLayer = bv_t2,
                            theRange = 400000, # size of the blocks
                            k = 5,
                            selection = "random",
@@ -347,48 +359,48 @@ saveRDS(sb_hp_3_t2, "./data/hp_3_t2_sb.RDS")
 
 #Getting dataframes to feed into the model (dropping NAs)
 #Swallowtail
-data_st_t1 = raster::extract(bioclim.data, df_st_t1[,-3], df = TRUE) %>%
+data_st_t1 = raster::extract(bv_t1, df_st_t1[,-3], df = TRUE) %>%
   bind_cols(df_st_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
-data_st_t2 = raster::extract(bioclim.data, df_st_t2[,-3], df = TRUE) %>%
+data_st_t2 = raster::extract(bv_t2, df_st_t2[,-3], df = TRUE) %>%
   bind_cols(df_st_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #Hostplant 1
-data_hp_1_t1 = raster::extract(bioclim.data, df_hp_1_t1[,-3], df = TRUE) %>%
+data_hp_1_t1 = raster::extract(bv_t1, df_hp_1_t1[,-3], df = TRUE) %>%
   bind_cols(df_hp_1_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
-data_hp_1_t2 = raster::extract(bioclim.data, df_hp_1_t2[,-3], df = TRUE) %>%
+data_hp_1_t2 = raster::extract(bv_t2, df_hp_1_t2[,-3], df = TRUE) %>%
   bind_cols(df_hp_1_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #Hostplant 2
-data_hp_2_t1 = raster::extract(bioclim.data, df_hp_2_t1[,-3], df = TRUE) %>%
+data_hp_2_t1 = raster::extract(bv_t1, df_hp_2_t1[,-3], df = TRUE) %>%
   bind_cols(df_hp_2_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
-data_hp_2_t2 = raster::extract(bioclim.data, df_hp_2_t2[,-3], df = TRUE) %>%
+data_hp_2_t2 = raster::extract(bv_t2, df_hp_2_t2[,-3], df = TRUE) %>%
   bind_cols(df_hp_2_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #Hostplant 3
-data_hp_3_t1 = raster::extract(bioclim.data, df_hp_3_t1[,-3], df = TRUE) %>%
+data_hp_3_t1 = raster::extract(bv_t1, df_hp_3_t1[,-3], df = TRUE) %>%
   bind_cols(df_hp_3_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
-data_hp_3_t2 = raster::extract(bioclim.data, df_hp_3_t2[,-3], df = TRUE) %>%
+data_hp_3_t2 = raster::extract(bv_t2, df_hp_3_t2[,-3], df = TRUE) %>%
   bind_cols(df_hp_3_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, bio1:bio19)
+  select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #vectors of presence-background
 #Swallowtail
@@ -580,78 +592,78 @@ library(rJava)
 #Swallowtail t1 
 eval_st_t1 = ENMevaluate(occ = p_st_t1_train, 
                          bg.coords = bg_swallowtail_t1, 
-                         env = bioclim.data, 
+                         env = bv_t1, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
-
+#saving model objects
+saveRDS(eval_st_t1, "./models/eval_st_t1.rds")
 #Swallowtail t2
 eval_st_t2 = ENMevaluate(occ = p_st_t2_train, 
                          bg.coords = bg_swallowtail_t2, 
-                         env = bioclim.data, 
+                         env = bv_t2, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
 
 #saving model objects
-saveRDS(eval_st_t1, "./models/eval_st_t1.rds")
 saveRDS(eval_st_t2, "./models/eval_st_t2.rds")
 
 #Hostplant 1 t1
 eval_hp_1_t1 = ENMevaluate(occ = p_hp_1_t1_train, 
                          bg.coords = bg_hostplant_1_t1, 
-                         env = bioclim.data, 
+                         env = bv_t1, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
+saveRDS(eval_hp_1_t1, "./models/eval_hp_1_t1.rds")
 
 #Hostplant 1 t2
 eval_hp_1_t2 = ENMevaluate(occ = p_hp_1_t2_train, 
                          bg.coords = bg_hostplant_1_t2, 
-                         env = bioclim.data, 
+                         env = bv_t2, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
 
-saveRDS(eval_hp_1_t1, "./models/eval_hp_1_t1.rds")
 saveRDS(eval_hp_1_t2, "./models/eval_hp_1_t2.rds")
 
 #Hostplant 2 t1
 eval_hp_2_t1 = ENMevaluate(occ = p_hp_2_t1_train, 
                          bg.coords = bg_hostplant_2_t1, 
-                         env = bioclim.data, 
+                         env = bv_t1, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
-
+saveRDS(eval_hp_2_t1, "./models/eval_hp_2_t1.rds")
 #Hostplant 2 t2
 eval_hp_2_t2 = ENMevaluate(occ = p_hp_2_t2_train, 
                          bg.coords = bg_hostplant_2_t2, 
-                         env = bioclim.data, 
+                         env = bv_t2, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
 
-saveRDS(eval_hp_2_t1, "./models/eval_hp_2_t1.rds")
+
 saveRDS(eval_hp_2_t2, "./models/eval_hp_2_t2.rds")
 
 #Hostplant 3 t1
 eval_hp_3_t1 = ENMevaluate(occ = p_hp_3_t1_train, 
                          bg.coords = bg_hostplant_3_t1, 
-                         env = bioclim.data, 
+                         env = bv_t1, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
-
+saveRDS(eval_hp_3_t1, "./models/eval_hp_3_t1.rds")
 #Hostplant 3 t2
 eval_hp_3_t2 = ENMevaluate(occ = p_hp_3_t2_train, 
                          bg.coords = bg_hostplant_3_t2, 
-                         env = bioclim.data, 
+                         env = bv_t2, 
                          method = 'randomkfold', 
                          kfolds = 5, 
                          algorithm = 'maxent.jar')
 
-saveRDS(eval_hp_3_t1, "./models/eval_hp_3_t1.rds")
+
 saveRDS(eval_hp_3_t2, "./models/eval_hp_3_t2.rds")
 
 
@@ -721,16 +733,16 @@ best_hp_3_t1 = eval_hp_3_t1@models[[best_index_hp_3_t1]]
 best_hp_3_t2 = eval_hp_3_t2@models[[best_index_hp_3_t2]]
 
 #Evaluate on test data
-ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bioclim.data)
-ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bioclim.data)
-ev_hp_1_t1 = evaluate(p_hp_1_t1_test, a = bg_hostplant_1_t1,  model = best_hp_1_t1, x = bioclim.data)
-ev_hp_1_t2 = evaluate(p_hp_1_t2_test, a = bg_hostplant_1_t2, model = best_hp_1_t2, x = bioclim.data)
+ev_st_t1 = evaluate(p_st_t1_test, a = bg_swallowtail_t1,  model = best_st_t1, x = bv_t1)
+ev_st_t2 = evaluate(p_st_t2_test, a = bg_swallowtail_t2,  model = best_st_t2, x = bv_t2)
+ev_hp_1_t1 = evaluate(p_hp_1_t1_test, a = bg_hostplant_1_t1,  model = best_hp_1_t1, x = bv_t1)
+ev_hp_1_t2 = evaluate(p_hp_1_t2_test, a = bg_hostplant_1_t2, model = best_hp_1_t2, x = bv_t2)
 
-ev_hp_2_t1 = evaluate(p_hp_2_t1_test, a = bg_hostplant_2_t1,  model = best_hp_2_t1, x = bioclim.data)
-ev_hp_2_t2 = evaluate(p_hp_2_t2_test, a = bg_hostplant_2_t2, model = best_hp_2_t2, x = bioclim.data)
+ev_hp_2_t1 = evaluate(p_hp_2_t1_test, a = bg_hostplant_2_t1,  model = best_hp_2_t1, x = bv_t1)
+ev_hp_2_t2 = evaluate(p_hp_2_t2_test, a = bg_hostplant_2_t2, model = best_hp_2_t2, x = bv_t2)
 
-ev_hp_3_t1 = evaluate(p_hp_3_t1_test, a = bg_hostplant_3_t1,  model = best_hp_3_t1, x = bioclim.data)
-ev_hp_3_t2 = evaluate(p_hp_3_t2_test, a = bg_hostplant_3_t2, model = best_hp_3_t2, x = bioclim.data)
+ev_hp_3_t1 = evaluate(p_hp_3_t1_test, a = bg_hostplant_3_t1,  model = best_hp_3_t1, x = bv_t1)
+ev_hp_3_t2 = evaluate(p_hp_3_t2_test, a = bg_hostplant_3_t2, model = best_hp_3_t2, x = bv_t2)
 
 
 #Saving evaluate objects for threshold maps in the figure-building script
@@ -756,7 +768,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Swallowtail T1 Model
-mx_best_st_t1 = maxent(bioclim.data, as.matrix(swallowtail_t1[,1:2]), args = maxent.args[[1]])
+mx_best_st_t1 = maxent(bv_t1, as.matrix(swallowtail_t1[,1:2]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_st_t1, "./models/full_best_st_t1.rds")
@@ -771,7 +783,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Swallowtail T2 Model
-mx_best_st_t2 = maxent(bioclim.data, as.matrix(swallowtail_t2[,1:2]), args = maxent.args[[1]])
+mx_best_st_t2 = maxent(bv_t2, as.matrix(swallowtail_t2[,1:2]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_st_t2, "./models/full_best_st_t2.rds")
@@ -786,7 +798,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T1 Model
-mx_best_hp_1_t1 = maxent(bioclim.data, as.matrix(hostplant_1_t1[,2:3]), args = maxent.args[[1]])
+mx_best_hp_1_t1 = maxent(bv_t1, as.matrix(hostplant_1_t1[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_1_t1, "./models/full_best_hp_1_t1.rds")
@@ -801,7 +813,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T2 Model
-mx_best_hp_1_t2 = maxent(bioclim.data, as.matrix(hostplant_1_t2[,2:3]), args = maxent.args[[1]])
+mx_best_hp_1_t2 = maxent(bv_t2, as.matrix(hostplant_1_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_1_t2, "./models/full_best_hp_1_t2.rds")
@@ -816,7 +828,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T1 Model
-mx_best_hp_2_t1 = maxent(bioclim.data, as.matrix(hostplant_2_t1[,2:3]), args = maxent.args[[1]])
+mx_best_hp_2_t1 = maxent(bv_t1, as.matrix(hostplant_2_t1[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_2_t1, "./models/full_best_hp_2_t1.rds")
@@ -831,7 +843,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T2 Model
-mx_best_hp_2_t2 = maxent(bioclim.data, as.matrix(hostplant_2_t2[,2:3]), args = maxent.args[[1]])
+mx_best_hp_2_t2 = maxent(bv_t2, as.matrix(hostplant_2_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_2_t2, "./models/full_best_hp_2_t2.rds")
@@ -846,7 +858,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T1 Model
-mx_best_hp_3_t1 = maxent(bioclim.data, as.matrix(hostplant_3_t1[,2:3]), args = maxent.args[[1]])
+mx_best_hp_3_t1 = maxent(bv_t1, as.matrix(hostplant_3_t1[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_3_t1, "./models/full_best_hp_3_t1.rds")
@@ -861,7 +873,7 @@ rm_best = auc_mod$rm
 maxent.args = ENMeval::make.args(RMvalues = rm_best, fc = FC_best)
 
 #Full Hostplant T2 Model
-mx_best_hp_3_t2 = maxent(bioclim.data, as.matrix(hostplant_3_t2[,2:3]), args = maxent.args[[1]])
+mx_best_hp_3_t2 = maxent(bv_t2, as.matrix(hostplant_3_t2[,2:3]), args = maxent.args[[1]])
 
 #save model
 saveRDS(mx_best_hp_3_t2, "./models/full_best_hp_3_t2.rds")
