@@ -1,0 +1,35 @@
+terraclim
+biovar_avg_combined_t1.grd
+biovar_avg_combined_t1.gri
+biovar_avg_combined_t1.rds
+biovar_avg_combined_t2.grd
+biovar_avg_combined_t2.gri
+biovar_avg_combined_t2.rds
+cru_ts4.02.1901.2017.pre.dat.nc
+cru_ts4.02.1901.2017.tmx.dat.nc
+ev_hp_1_t1.RDS
+ev_hp_1_t2.rds
+ev_hp_2_t1.RDS
+ev_hp_2_t2.rds
+ev_hp_3_t1.RDS
+ev_hp_3_t2.rds
+ev_st_t1.RDS
+ev_st_t2.RDS
+hostplant_data.csv
+hp_1_t1_sb 2.RDS
+hp_1_t1_sb.RDS
+hp_1_t2_sb 2.RDS
+hp_1_t2_sb.RDS
+hp_2_t1_sb 2.RDS
+hp_2_t1_sb.RDS
+hp_2_t2_sb 2.RDS
+hp_2_t2_sb.RDS
+hp_3_t1_sb 2.RDS
+hp_3_t1_sb.RDS
+hp_3_t2_sb 2.RDS
+hp_3_t2_sb.RDS
+st_t1_sb.RDS
+st_t2_sb.RDS
+swallowtail_data.csv
+.cru_ts4.02.1901.2017.tmn.dat.nc.icloud
+bioclim.rds
