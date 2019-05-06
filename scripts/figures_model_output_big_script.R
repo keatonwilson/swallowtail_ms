@@ -503,6 +503,7 @@ maxent_th_st = ggarrange(g13, g14, common.legend = TRUE)
 maxent_th_st
 
 ggsave(plot = maxent_th_st, filename = "./output/swallowtail_threshold_occurence.png", device = "png")
+
 #Environmental Variable Importance
 
 #Swallowtail time-frame 1
@@ -515,7 +516,7 @@ env_plot_1 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   theme_classic() +
   labs(x = "Environmental Variable", 
        y = "Percent Contribution") +
-  ggtitle("Swallowtail T1") +
+  ggtitle("Papilio cresphontes 1959-1999") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 #Swallowtail time-frame 2
@@ -528,10 +529,10 @@ env_plot_2 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   theme_classic() +
   labs(x = "Environmental Variable", 
        y = "Percent Contribution") +
-  ggtitle("Swallowtail T2") +
+  ggtitle("Papilio cresphontes 2000-2018") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-#hostplant time-frame 1 - need to do these for all host plants
+#hostplant 1 time-frame 1
 df = var.importance(mx_best_hp_1_t1)
 df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
                                              "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
@@ -541,10 +542,10 @@ env_plot_3 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   theme_classic() +
   labs(x = "Environmental Variable", 
        y = "Percent Contribution") +
-  ggtitle("Hostplant T1") +
+  ggtitle("Zanthoxylum americanum 1959-1999") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-#hostplant time-frame 2
+#hostplant 1 time-frame 2
 df = var.importance(mx_best_hp_1_t2)
 df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
                                              "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
@@ -554,10 +555,66 @@ env_plot_4 = ggplot(df, aes(x = variable, y = percent.contribution)) +
   theme_classic() +
   labs(x = "Environmental Variable", 
        y = "Percent Contribution") +
-  ggtitle("Hostplant T2") +
+  ggtitle("Zanthoxylum americanum 2000-2018") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-env_plot = ggarrange(env_plot_1, env_plot_2, env_plot_3, env_plot_4, common.legend = TRUE)
+#hostplant 2 time-frame 1 
+df = var.importance(mx_best_hp_2_t1)
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
+env_plot_5 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Zanthoxylum clava-herculis 1959-1999") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant 2 time-frame 2
+df = var.importance(mx_best_hp_2_t2)
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
+env_plot_6 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Zanthoxylum clava-herculis 2000-2018") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant 3 time-frame 1 
+df = var.importance(mx_best_hp_3_t1)
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
+env_plot_7 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Ptelea trifoliata 1959-1999") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#hostplant 3 time-frame 2
+df = var.importance(mx_best_hp_3_t2)
+df$variable = factor(df$variable, levels = c("Bio1", "Bio2", "Bio3", "Bio4", "Bio5", "Bio6", "Bio7",
+                                             "Bio8", "Bio9", "Bio10", "Bio11", "Bio12", "Bio13", 
+                                             "Bio14", "Bio15", "Bio16", "Bio17", "Bio18", "Bio19"))
+env_plot_8 = ggplot(df, aes(x = variable, y = percent.contribution)) +
+  geom_col() +
+  theme_classic() +
+  labs(x = "Environmental Variable", 
+       y = "Percent Contribution") +
+  ggtitle("Ptelea trifoliata 2000-2018") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+
+
+env_plot = ggarrange(env_plot_1, env_plot_2, env_plot_3, env_plot_4,
+                     env_plot_5, env_plot_6, env_plot_7, env_plot_8,
+                     common.legend = TRUE)
 env_plot
 
 ggsave(plot = env_plot, filename = "./output/environmental_contribution.png", device = "png")
@@ -607,12 +664,12 @@ ggplot(aes(y = factor(year), x = latitude)) +
   geom_linerange(x = 46.8139, ymin = 1, ymax = 38, lty = 2) +
   geom_linerange(x = 45.4215, ymin = 1, ymax = 39, lty = 2) +
   geom_linerange(x= 43.6532, ymin = 1, ymax = 40, lty = 2) +
-  geom_linerange(x = 39.7684, ymin = 1, ymax = 37, lty = 2) +
+  geom_linerange(x = 39.7684, ymin = 1, ymax = 38, lty = 2) +
   theme_classic() +
   annotate(geom = "text", 
            label = "Indianapolis", 
            x = 39.7684,
-           y = 38.5) +
+           y = 39) +
   annotate(geom = "text", 
            label = "Toronto", 
            x = 43.6532,
@@ -652,7 +709,7 @@ g13 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "grey10") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
-  geom_tile(data = hp_thresholds_df, aes(x = x, y = y, fill = name), alpha = 0.7) +
+  geom_tile(data = hp_thresholds_df, aes(x = x, y = y, fill = name, color = name), alpha = 0.6) +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey75", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
@@ -669,7 +726,8 @@ g13 = ggplot() +
                                  "Zanthoxylum clava-herculis", 
                                  "Ptelea trifoliata")) +
   ggtitle("1960-1999") +
-  coord_quickmap()
+  coord_quickmap() +
+  scale_color_discrete(guide = FALSE)
 
 hp_thresholds_df = 
   bind_rows(hp_1_t2_threshold, hp_2_t2_threshold, hp_3_t2_threshold, .id = "id") %>%
@@ -681,7 +739,7 @@ g14 = ggplot() +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color=NA, size=0.25, fill = "grey10") +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = NA, size = 0.25, fill = "grey10") +
-  geom_tile(data = hp_thresholds_df, aes(x = x, y = y, fill = name), alpha = 0.7) +
+  geom_tile(data = hp_thresholds_df, aes(x = x, y = y, fill = name, color = name), alpha = 0.6) +
   geom_polygon(data=simple_map_US, aes(x=long, y=lat, group=group), 
                color="grey75", size=0.25, fill = NA) +
   geom_polygon(data = simple_map_can, aes(x = long, y = lat, group = group), color = "grey50", size = 0.25, fill = NA) +
@@ -696,7 +754,8 @@ g14 = ggplot() +
                                  "Zanthoxylum clava-herculis", 
                                  "Ptelea trifoliata")) +
   ggtitle("2000-2019") +
-  coord_quickmap()
+  coord_quickmap() +
+  scale_color_discrete(guide = FALSE)
 
 maxent_th_hp = ggarrange(g13, g14, common.legend = TRUE)
 maxent_th_hp
