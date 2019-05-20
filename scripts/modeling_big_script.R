@@ -20,7 +20,7 @@ set.seed(42)
 #butterfly
 swallowtail = read_csv("./data/swallowtail_data.csv")
 swallowtail = swallowtail[,-1] %>%
-  select(longitude, latitude, date, year, time_frame)
+  dplyr::select(longitude, latitude, date, year, time_frame)
 
 #hostplants
 hostplant = read_csv("./data/hostplant_data.csv")
@@ -138,70 +138,70 @@ colnames(bg_hostplant_3_t2) = c("longitude", "latitude")
 #Merging background and occurence data for blockCV
 df_st_t1 = data.frame(swallowtail_t1) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_swallowtail_t1) %>% 
               mutate(pb = 0))  %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 df_st_t2 = data.frame(swallowtail_t2) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_swallowtail_t2) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 #Hostplant 1
 df_hp_1_t1 = data.frame(hostplant_1_t1) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_hostplant_1_t1) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 df_hp_1_t2 = data.frame(hostplant_1_t2) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_hostplant_1_t2) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 #Hostplant 2
 df_hp_2_t1 = data.frame(hostplant_2_t1) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_hostplant_2_t1) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 df_hp_2_t2 = data.frame(hostplant_2_t2) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_hostplant_2_t2) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 #Hostplant 3
 df_hp_3_t1 = data.frame(hostplant_3_t1) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_hostplant_3_t1) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 df_hp_3_t2 = data.frame(hostplant_3_t2) %>%
   mutate(pb = 1) %>%
-  select(pb, longitude, latitude) %>%
+  dplyr::select(pb, longitude, latitude) %>%
   bind_rows(data.frame(bg_hostplant_3_t2) %>% 
               mutate(pb = 0)) %>%
   mutate(Species = as.integer(pb)) %>%
-  select(-pb)
+  dplyr::select(-pb)
 
 #Spatialpoints
 #Swallowtail
@@ -357,50 +357,60 @@ saveRDS(sb_hp_2_t2, "./data/hp_2_t2_sb.RDS")
 saveRDS(sb_hp_3_t1, "./data/hp_3_t1_sb.RDS")
 saveRDS(sb_hp_3_t2, "./data/hp_3_t2_sb.RDS")
 
+#Loading
+sb_st_t1 = readRDS("./data/st_t1_sb.RDS")
+sb_st_t2 = readRDS("./data/st_t2_sb.RDS")
+sb_hp_1_t1 = readRDS("./data/hp_1_t1_sb.RDS")
+sb_hp_1_t2 = readRDS("./data/hp_1_t2_sb.RDS")
+sb_hp_2_t1 = readRDS("./data/hp_2_t1_sb.RDS")
+sb_hp_2_t2 = readRDS("./data/hp_2_t2_sb.RDS")
+sb_hp_3_t1 = readRDS("./data/hp_3_t1_sb.RDS")
+sb_hp_3_t2 = readRDS("./data/hp_3_t2_sb.RDS")
+
 #Getting dataframes to feed into the model (dropping NAs)
 #Swallowtail
 data_st_t1 = raster::extract(bv_t1, df_st_t1[,-3], df = TRUE) %>%
   bind_cols(df_st_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 data_st_t2 = raster::extract(bv_t2, df_st_t2[,-3], df = TRUE) %>%
   bind_cols(df_st_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #Hostplant 1
 data_hp_1_t1 = raster::extract(bv_t1, df_hp_1_t1[,-3], df = TRUE) %>%
   bind_cols(df_hp_1_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 data_hp_1_t2 = raster::extract(bv_t2, df_hp_1_t2[,-3], df = TRUE) %>%
   bind_cols(df_hp_1_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #Hostplant 2
 data_hp_2_t1 = raster::extract(bv_t1, df_hp_2_t1[,-3], df = TRUE) %>%
   bind_cols(df_hp_2_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 data_hp_2_t2 = raster::extract(bv_t2, df_hp_2_t2[,-3], df = TRUE) %>%
   bind_cols(df_hp_2_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #Hostplant 3
 data_hp_3_t1 = raster::extract(bv_t1, df_hp_3_t1[,-3], df = TRUE) %>%
   bind_cols(df_hp_3_t1) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+ dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 data_hp_3_t2 = raster::extract(bv_t2, df_hp_3_t2[,-3], df = TRUE) %>%
   bind_cols(df_hp_3_t2) %>%
   drop_na() %>%
-  select(-ID, Species, longitude, latitude, Bio1:Bio19)
+  dplyr::select(-ID, Species, longitude, latitude, Bio1:Bio19)
 
 #vectors of presence-background
 #Swallowtail
@@ -513,74 +523,74 @@ dim(pb_st_t1_test_data) #Looks good - test data is about 20%
 #Train and test for swallowtail t1
 p_st_t1_train = pb_st_t1_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_st_t1_test = pb_st_t1_test_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for swallowtail t2
 p_st_t2_train = pb_st_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_st_t2_test = pb_st_t2_test_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for hostplant 1 t1
 p_hp_1_t1_train = pb_hp_1_t1_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_hp_1_t1_test = pb_hp_1_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for hostplant 1 t2
 p_hp_1_t2_train = pb_hp_1_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_hp_1_t2_test = pb_hp_1_t2_test_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for hostplant 2 t1
 p_hp_2_t1_train = pb_hp_2_t1_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_hp_2_t1_test = pb_hp_2_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for hostplant 2 t2
 p_hp_2_t2_train = pb_hp_2_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_hp_2_t2_test = pb_hp_2_t2_test_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for hostplant 3 t1
 p_hp_3_t1_train = pb_hp_3_t1_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_hp_3_t1_test = pb_hp_3_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 #train and test for hostplant 3 t2
 p_hp_3_t2_train = pb_hp_3_t2_train_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 p_hp_3_t2_test = pb_hp_3_t2_test_data %>%
   filter(Species == 1) %>%
-  select(longitude, latitude)
+  dplyr::select(longitude, latitude)
 
 
 # Modeling ----------------------------------------------------------------
