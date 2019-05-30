@@ -235,9 +235,6 @@ hp_thresholds_df_t2 =
                        ifelse(id == 2, "Zanthoxylum clava-herculis", "Ptelea trifoliata"))) %>%
   dplyr::select(-id)
 
-# Setting Plotting Settings -----------------------------------------------
-
-
 # Figure 1 -  Evidence of northward shift from raw occurence data------------------------------------------------- 
 #Panel A
 
@@ -245,6 +242,7 @@ hp_thresholds_df_t2 =
 swallowtail_inset = swallowtail %>%
   group_by(year) %>%
   summarize(max_lat = max(latitude), 
+            median_lat = median(latitude),
             n = n()) %>%
   filter(max_lat > 35) #Filtering - there are some weird years that only have a few records at really low lattitudes.
 
@@ -278,10 +276,10 @@ fig_1_b = swallowtail %>%
   filter(year %in% years) %>%
   ggplot(aes(y = factor(year), x = latitude)) +
   geom_density_ridges(scale = 4) +
-  geom_linerange(x = 46.8139, ymin = 1, ymax = 38, lty = 2) +
-  geom_linerange(x = 45.4215, ymin = 1, ymax = 39, lty = 2) +
-  geom_linerange(x= 43.6532, ymin = 1, ymax = 40, lty = 2) +
-  geom_linerange(x = 39.7684, ymin = 1, ymax = 38, lty = 2) +
+  geom_linerange(x = 46.8139, ymin = 1, ymax = 38, lty = 2, size = 0.25, alpha = 0.6) +
+  geom_linerange(x = 45.4215, ymin = 1, ymax = 39, lty = 2, size = 0.25, alpha = 0.6) +
+  geom_linerange(x= 43.6532, ymin = 1, ymax = 40, lty = 2, size = 0.25, alpha = 0.6) +
+  geom_linerange(x = 39.7684, ymin = 1, ymax = 38, lty = 2, size = 0.25, alpha = 0.6) +
   theme_classic() +
   annotate(geom = "text", 
            label = "Indianapolis", 
@@ -406,7 +404,7 @@ g3 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
         plot.title = element_text(hjust = 0.5, size = 24),
-        plot.margin = unit(c(3,3,3,3), "lines")) +
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   ggtitle("1959 - 1999") +
   coord_quickmap()
@@ -427,7 +425,7 @@ g4 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
         plot.title = element_text(hjust = 0.5, size = 24),
-        plot.margin = unit(c(3,3,3,3), "lines")) +
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   ggtitle("2000 - 2018") +
   coord_quickmap()
@@ -451,7 +449,7 @@ g5 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
         plot.title = element_text(hjust = 0.5, size = 24),
-        plot.margin = unit(c(3,3,3,3), "lines")) +
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   # ggtitle("1959 - 1999") +
   coord_quickmap()
@@ -472,7 +470,7 @@ g6 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
         plot.title = element_text(hjust = 0.5, size = 24),
-        plot.margin = unit(c(3,3,3,3), "lines")) +
+        plot.margin = unit(c(0.4,0.5,0.5,0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   # ggtitle("2000 - 2019") +
   coord_quickmap()
@@ -498,7 +496,7 @@ g7 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
         plot.title = element_text(hjust = 0.5, size = 24),
-        plot.margin = unit(c(3,3,3,3), "lines")) +
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   # ggtitle("1959 - 1999") +
   coord_quickmap() +
@@ -520,7 +518,7 @@ g8 = ggplot() +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
         plot.title = element_text(hjust = 0.5, size = 24),
-        plot.margin = unit(c(3,3,3,3), "lines")) +
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   # ggtitle("2000 - 2019") +
   coord_quickmap()
@@ -539,15 +537,9 @@ text.3 = ggparagraph(text = "Ptelea trifoliata", face = "italic", size = 12)
 fig_3_a = ggarrange(maxent_raw_hp_1, 
                     maxent_raw_hp_2,
                     maxent_raw_hp_3,
-                    nrow = 3, ncol = 1, align = "h",
-                    labels = c("Zanthoxylum americanum", 
-                               "Zanthoxylum clava-herculis", 
-                               "Ptelea trifofliata"), 
-                    label.x = 1, 
-                    label.y = 0.5, 
+                    nrow = 3, ncol = 1, 
                     legend = "top", 
-                    heights = c(1.25,1,1))
-
+                    heights = c(1.4,1,1))
 #Threholds Panel B
 
 g13 = ggplot() +  
@@ -564,13 +556,14 @@ g13 = ggplot() +
   #            aes(x = longitude, y = latitude), color ="#F8766D",  alpha = 0.5, shape = 3) +
   geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24), 
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   scale_fill_discrete(name = "Species", 
                       breaks = c("Zanthoxylum americanum", 
                                  "Zanthoxylum clava-herculis", 
                                  "Ptelea trifoliata")) +
-  ggtitle("1959-1999") +
+  ggtitle("1959 - 1999") +
   coord_quickmap() +
   scale_color_discrete(guide = FALSE)
 
@@ -587,21 +580,22 @@ g14 = ggplot() +
   geom_polygon(data = lakes, aes(x = long, y = lat, group = group), fill = "white", size = 0.25) +
   theme(legend.position="bottom") +
   theme(legend.key.width=unit(2, "cm"),
-        plot.title = element_text(hjust = 0.5, size = 24)) +
+        plot.title = element_text(hjust = 0.5, size = 24),
+        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "lines")) +
   theme_nothing(legend = TRUE) +
   scale_fill_discrete(name = "Species", 
                       breaks = c("Zanthoxylum americanum", 
                                  "Zanthoxylum clava-herculis", 
                                  "Ptelea trifoliata")) +
-  ggtitle("2000-2018") +
+  ggtitle("2000 - 2018") +
   coord_quickmap() +
   scale_color_discrete(guide = FALSE)
 
 fig_3_b = ggarrange(g13, g14, common.legend = TRUE, legend = "bottom")
 
-fig_3 = ggarrange(fig_3_a, fig_3_b, ncol = 2)
+fig_3 = ggarrange(fig_3_a, fig_3_b, ncol = 1, nrow = 2)
 ggsave(plot = fig_3, filename = "./output/fig_3.png", device = "png",
-       width = 16, height = 8.5, units = "in")
+       width = 10, height = 16, units = "in")
 
 
 # Figure 4 - Density Estimates - Whole range --------------------------------
@@ -613,7 +607,7 @@ g9 = ggplot(threshold_df_st, aes(x = y, fill = timeframe)) +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1959-1999", "2000-2018")) +
   xlim(c(25,50)) +
-  labs(title = expression(italic("Papilio cresphontes")))
+  labs(title = expression(italic("P. cresphontes")))
 
 #plotting hp 1
 g10 = ggplot(threshold_df_hp_1, aes(x = y, fill = timeframe)) +
@@ -622,7 +616,7 @@ g10 = ggplot(threshold_df_hp_1, aes(x = y, fill = timeframe)) +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1959-1999", "2000-2018")) +
   xlim(c(25,50)) +
-  labs(title = expression(italic("Zanthoxylum americanum")))
+  labs(title = expression(italic("Z. americanum")))
 
 g11 = ggplot(threshold_df_hp_2, aes(x = y, fill = timeframe)) +
   geom_density(alpha = 0.8) +
@@ -630,7 +624,7 @@ g11 = ggplot(threshold_df_hp_2, aes(x = y, fill = timeframe)) +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1959-1999", "2000-2018")) +
   xlim(c(25,50)) +
-  labs(title = expression(italic("Zanthoxylum clava-herculis")))
+  labs(title = expression(italic("Z. clava-herculis")))
 
 g12 = ggplot(threshold_df_hp_3, aes(x = y, fill = timeframe)) +
   geom_density(alpha = 0.8) +
@@ -638,7 +632,7 @@ g12 = ggplot(threshold_df_hp_3, aes(x = y, fill = timeframe)) +
   labs(x = "Latitude", y = "Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", labels = c("1959-1999", "2000-2018")) +
   xlim(c(25,50)) +
-  labs(title = expression(italic("Ptelea trifoliata")))
+  labs(title = expression(italic("P. trifoliata")))
 
 
 histograms_plot = ggarrange(g9,g10,g11,g12, common.legend = TRUE, nrow = 4)
@@ -687,7 +681,7 @@ fig_5_a = ggplot(data = n_limit_st, aes(x = max_y, fill = timeframe)) +
   xlab("Max Northern Occurence (ºC)") +
   ylab("Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", 
-                      labels = c("t1 - 1959-1999", "t2 - 2000-2018")) + 
+                      labels = c("T1 - 1959-1999", "T2 - 2000-2018")) + 
   labs(title = expression(italic("P. cresphontes"))) +
 xlim(c(38, 50)) +
   ylim(c(0, 0.90))
@@ -737,11 +731,11 @@ fig_5_d = ggplot(data = n_limit_st_hp1_t2, aes(x = max_y, fill = species)) +
   xlab("Max Northern Occurence (ºC)") +
   ylab("Kernel Density Estimate") +
   scale_fill_manual(name = "Species", 
-                    labels = c("P. cresphontes", "Z. americanum"),
+                    labels = c(expression(italic("P. cresphontes")), expression(italic("Z. americanum"))),
                     values = c("#E69F00", "#56B4E9")) +
   xlim(c(38, 50)) +
   ylim(c(0, 0.90)) +
-  ggtitle("t2")
+  ggtitle("T2 (2000-2018)")
 
 #T1
 n_limit_st_hp1_t1 = pred_sp_df_st_t1 %>%
@@ -767,11 +761,11 @@ fig_5_c = ggplot(data = n_limit_st_hp1_t1, aes(x = max_y, fill = species)) +
   xlab("Max Northern Occurence (ºC)") +
   ylab("Kernel Density Estimate") +
   scale_fill_manual(name = "Species", 
-                    labels = c("P. cresphontes", "Z. americanum"),
+                    labels = c(expression(italic("P. cresphontes")), expression(italic("Z. americanum"))),
                     values = c("#E69F00", "#56B4E9")) +
   xlim(c(38, 50)) +
   ylim(c(0, 0.90)) +
-  ggtitle("t1")
+  ggtitle("T1 (1959-1999)")
 
 #T1
 n_limit_st_hp1 = pred_sp_df_hp_1_t1 %>%
@@ -797,7 +791,7 @@ fig_5_b = ggplot(data = n_limit_st_hp1, aes(x = max_y, fill = timeframe)) +
   xlab("Max Northern Occurence (ºC)") +
   ylab("Kernel Density Estimate") +
   scale_fill_discrete(name = "Time Frame", 
-                      labels = c("t1 - 1959-1999", "t2 - 2000-2018")) + 
+                      labels = c("T1 - 1959-1999", "T2 - 2000-2018")) + 
   labs(title = expression(italic("Z. americanum"))) +
 xlim(c(38, 50)) +
   ylim(c(0, 0.90))

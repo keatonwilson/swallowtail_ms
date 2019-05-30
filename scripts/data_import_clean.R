@@ -61,30 +61,30 @@ bamona = read_csv("./data/bamona_data.csv")
 
 #cleaning and merging
 ebutterfly = ebutterfly %>%
-  select(OccuranceID, 'Date Observed', Latitude, Longitude) %>%
-  select(Latitude, Longitude, Date = 'Date Observed') %>%
+  dplyr::select(OccuranceID, 'Date Observed', Latitude, Longitude) %>%
+  dplyr::select(Latitude, Longitude, Date = 'Date Observed') %>%
   mutate(date = as.Date(Date)) %>%
-  select(-Date)
+  dplyr::select(-Date)
 
 maine = maine %>%
-  select(Latitude, Longitude, Year, Month, Day) %>%
+  dplyr::select(Latitude, Longitude, Year, Month, Day) %>%
   filter(!is.na(Latitude) & !is.na(Longitude)) %>%
   mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
-  select(-c(Year, Month, Day))
+  dplyr::select(-c(Year, Month, Day))
 
 maritime = maritime %>%
-  select(Latitude, Longitude, Year, Month, Day) %>%
+  dplyr::select(Latitude, Longitude, Year, Month, Day) %>%
   filter(Day != "XX") %>%
   mutate(date = date(paste(Year, Month, Day, sep = "-"))) %>%
-  select(-c(Year, Month, Day))
+  dplyr::select(-c(Year, Month, Day))
 
 ma_club = ma_club %>%
-  select(Latitude, Longitude, Date) %>%
+  dplyr::select(Latitude, Longitude, Date) %>%
   mutate(date = date(Date)) %>%
-  select(-Date)
+  dplyr::select(-Date)
 
 bamona = bamona %>%
-  select(Latitude = `Lat/Long`, Longitude = Longitude, date =`Observation Date`) %>%
+  dplyr::select(Latitude = `Lat/Long`, Longitude = Longitude, date =`Observation Date`) %>%
   mutate(date = as.Date(date, "%m/%d/%Y"))
 
 swallowtail_df = swallowtail_df %>%
