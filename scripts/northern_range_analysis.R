@@ -24,7 +24,7 @@ library(ENMeval)
 #Loading in raw occurence data
 swallowtail = read_csv("./data/swallowtail_data.csv")
 swallowtail = swallowtail[,-1] %>%
-  select(longitude, latitude, date, year, time_frame)
+  dplyr::select(longitude, latitude, date, year, time_frame)
 
 #hostplant
 hostplant = read_csv("./data/hostplant_data.csv")
@@ -422,3 +422,51 @@ fig_5_b = ggplot(data = n_limit_st_hp1, aes(x = max_y, fill = timeframe)) +
 
 fig_5 = ggarrange(fig_5_a, fig_5_b, fig_5_c, fig_5_d, labels = "AUTO")
 ggsave(plot = fig_5, filename = "./output/fig_5.png", device = "png")
+
+
+#Same thing for P. trifoliata
+n_limit_hp_3 = pred_sp_df_hp_3_t1 %>%
+  bind_rows(pred_sp_df_hp_3_t2, .id = "timeframe") %>%
+  mutate(occ = ifelse(value >= hp_3_t1_threshold & timeframe == 1, 1,
+                      ifelse(value >= hp_3_t2_threshold & timeframe == 2, 1, 0))) %>%
+  group_by(x, timeframe) %>%
+  summarize(max_y = max(y[occ == 1])) %>%
+  mutate(max_y = ifelse(max_y == -Inf, NA, max_y)) %>%
+  ungroup()
+
+#Breaking apart to feed into the paired t-test
+hp_3_max_y_t1 = n_limit_hp_3 %>%
+  filter(timeframe == "1") %>%
+  pull(max_y)
+
+hp_3_max_y_t2 = n_limit_hp_3 %>%
+  filter(timeframe == "2") %>%
+  pull(max_y)
+
+#Tests and calculations
+test = t.test(hp_3_max_y_t1, hp_3_max_y_t2, paired = TRUE)
+sd(hp_3_max_y_t2, na.rm = TRUE)
+median(hp_3_max_y_t2, na.rm = TRUE) - median(hp_3_max_y_t1, na.rm = TRUE)
+median(st_max_y_t1, na.rm = TRUE)
+
+
+threshold_df_hp_1 %>%
+  filter(timeframe == "t1") %>%
+  filter(value > hp_1_t1_threshold) %>%
+  summarize(median_lat = median(y))
+
+threshold_df_hp_1 %>%
+  filter(timeframe == "t2") %>%
+  filter(value > hp_1_t2_threshold) %>%
+  summarize(median_lat = median(y))
+
+threshold_df_hp_3 %>%
+  filter(timeframe == "t1") %>%
+  filter(value > hp_3_t1_threshold) %>%
+  summarize(median_lat = median(y))
+
+threshold_df_hp_3 %>%
+  filter(timeframe == "t2") %>%
+  filter(value > hp_3_t2_threshold) %>%
+  summarize(median_lat = median(y))
+
